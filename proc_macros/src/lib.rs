@@ -9,9 +9,9 @@ use syn::{
 pub fn generate_sender(input: TokenStream) -> TokenStream {
     let spec: Spec = parse_macro_input!(input);
 
-    quote! {{
+    quote! {
         #spec
-    }}
+    }
     .into()
 }
 
@@ -43,7 +43,7 @@ impl ToTokens for Spec {
         let enum_name = &self.enum_name;
         let variant_name = &self.variant_name;
 
-        quote! {{
+        quote! {
             struct #struct_name {
                 pub sender: ::tokio::sync::mpsc::Sender<#enum_name>,
             }
@@ -62,8 +62,7 @@ impl ToTokens for Spec {
                     self.sender.send(#enum_name::#variant_name(value)).await.unwrap();
                 }
             }
-
-        }}
+        }
         .to_tokens(tokens)
     }
 }
