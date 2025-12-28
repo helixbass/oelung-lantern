@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use crossterm::style::Color;
+use oelung::{anyhow, Component, ComponentInterface, Grid};
 use tokio::{sync::mpsc, task::JoinHandle, time::interval};
 
 use crate::SendRerender;
@@ -37,5 +38,11 @@ impl SnakeSpinner {
 impl Drop for SnakeSpinner {
     fn drop(&mut self) {
         self.join_handle.abort();
+    }
+}
+
+impl<'a> ComponentInterface for &'a SnakeSpinner {
+    fn render<'b>(&self, grid: Grid) -> Result<Component<'b>, anyhow::Error> {
+        unimplemented!()
     }
 }
