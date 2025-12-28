@@ -9,7 +9,7 @@ use tokio_stream::StreamExt;
 
 use oelung::{soft, ComponentInterface, Renderer};
 
-use oelung_lantern::{mpsc, spinner::snake, ReceiveEvent, SnakeSpinner};
+use oelung_lantern::{generate_sender, mpsc, spinner::snake, ReceiveEvent, SnakeSpinner};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
