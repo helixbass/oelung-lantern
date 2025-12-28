@@ -18,7 +18,7 @@ impl SnakeSpinner {
     pub fn new(period: Duration, color: Option<Color>, sender: Box<dyn Sender<Tick>>) -> Self {
         let uuid = Uuid::new_v4();
         let join_handle = tokio::spawn(async move {
-            let mut interval = interval(period);
+            let mut interval = interval(period / 10);
             loop {
                 let _ = interval.tick().await;
                 sender.send(Tick { uuid }).await;
