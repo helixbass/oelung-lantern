@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossterm::style::Color;
-use oelung::{anyhow, Component, ComponentInterface, Grid};
+use oelung::{anyhow, Component, ComponentInterface, Grid, TextBuilder};
 use tokio::{task::JoinHandle, time::interval};
 use uuid::Uuid;
 
@@ -42,7 +42,32 @@ impl Drop for SnakeSpinner {
 
 impl<'a> ComponentInterface for &'a SnakeSpinner {
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
-        unimplemented!()
+        // TODO: maybe expose `maybe_color => self.color`
+        // on `%Text`?
+        // Ok(soft! {
+        //   %Text
+        //     color =>
+        // })
+        Ok({
+            let mut text = TextBuilder::default();
+            if let Some(color) = self.color {
+                text = text.color(color);
+            }
+            let text = text.text_child(match self.next_step % 10 {
+                0 => "⠋",
+                1 => "⠙",
+                2 => "⠹",
+                3 => "⠸",
+                4 => "⠼",
+                5 => "⠴",
+                6 => "⠦",
+                7 => "⠧",
+                8 => "⠇",
+                9 => "⠏",
+                _ => unreachable!(),
+            });
+            text.build().unwrap().into()
+        })
     }
 }
 
