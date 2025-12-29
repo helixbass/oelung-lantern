@@ -16,12 +16,12 @@ async fn main() -> Result<(), anyhow::Error> {
 
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
-    let countdown = Countdown::new(
+    let mut countdown = Some(Countdown::new(
         Duration::from_secs(5),
         Box::new(CountdownSender::from(sender)),
-    );
+    ));
 
-    render_screen(&mut renderer, &countdown)?;
+    render_screen(&mut renderer, countdown.as_ref())?;
 
     while let Some(world) = receiver.recv().await {
         match world {
@@ -29,11 +29,12 @@ async fn main() -> Result<(), anyhow::Error> {
                 break;
             }
             World::Countdown(countdown::Event::Tick { .. }) => {
-                render_screen(&mut renderer, &countdown)?;
+                render_screen(&mut renderer, countdown.as_ref())?;
             }
-            // World::Countdown(countdown::Event::Done) => {
-            //     render_screen(&mut renderer, &countdown)?;
-            // }
+            World::Countdown(countdown::Event::Done) => {
+                countdown = None;
+                render_screen(&mut renderer, countdown.as_ref())?;
+            }
             _ => {}
         }
     }
@@ -41,11 +42,17 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn render_screen(renderer: &mut Renderer, countdown: &Countdown) -> Result<(), anyhow::Error> {
+fn render_screen(
+    renderer: &mut Renderer,
+    countdown: Option<&Countdown>,
+) -> Result<(), anyhow::Error> {
     renderer.render(soft! {
       %FlexColumn
         children => [
-          %countdown
+          match countdown => {
+              Some(countdown) => soft! { %countdown },
+              None => soft! { %Text "Done!" }
+          }
           %Text "(hit q to quit)"
         ]
     })?;
