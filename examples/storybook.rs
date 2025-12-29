@@ -104,7 +104,7 @@ impl storybook::Component<World> for SnakeSpinner {
 }
 
 impl storybook::ComponentInstance<World> for spinner::SnakeSpinner {
-    fn get_component<'a>(&'a self) -> Component<'a> {
+    fn get_component(&self) -> Component<'_> {
         Component::Component(Box::new(self))
     }
 
