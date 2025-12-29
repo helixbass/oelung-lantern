@@ -96,8 +96,8 @@ impl storybook::Component<World> for SnakeSpinner {
         let color = inputs["color"].as_ref().map(|input| input.as_color());
 
         Box::new(spinner::SnakeSpinner::new(
-            period,
-            color,
+            period.cloned(),
+            color.cloned(),
             Box::new(SnakeSpinnerTickSender::from(sender)),
         ))
     }
