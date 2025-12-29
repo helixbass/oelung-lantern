@@ -18,7 +18,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let countdown = Countdown::new(
         Duration::from_secs(5),
-        Box::new(CountdownTickSender::from(sender)),
+        Box::new(CountdownSender::from(sender)),
     );
 
     render_screen(&mut renderer, &countdown)?;
@@ -28,9 +28,12 @@ async fn main() -> Result<(), anyhow::Error> {
             World::Crossterm(Event::Key(key)) if key.code == KeyCode::Char('q') => {
                 break;
             }
-            World::CountdownTick(_tick) => {
+            World::Countdown(countdown::Event::Tick { .. }) => {
                 render_screen(&mut renderer, &countdown)?;
             }
+            // World::Countdown(countdown::Event::Done) => {
+            //     render_screen(&mut renderer, &countdown)?;
+            // }
             _ => {}
         }
     }
@@ -52,11 +55,11 @@ fn render_screen(renderer: &mut Renderer, countdown: &Countdown) -> Result<(), a
 
 enum World {
     Crossterm(Event),
-    CountdownTick(countdown::Tick),
+    Countdown(countdown::Event),
 }
 
 generate_sender!(World, Crossterm, Event);
-generate_sender!(World, CountdownTick, countdown::Tick);
+generate_sender!(World, Countdown, countdown::Event);
 
 fn listen_to_crossterm_events(sender: CrosstermSender) {
     tokio::spawn(async move {

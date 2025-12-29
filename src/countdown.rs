@@ -14,7 +14,7 @@ pub struct Countdown {
 }
 
 impl Countdown {
-    pub fn new(total: Duration, sender: Box<dyn Sender<CountdownEvent>>) -> Self {
+    pub fn new(total: Duration, sender: Box<dyn Sender<Event>>) -> Self {
         let uuid = Uuid::new_v4();
         let started_at = Instant::now();
         let join_handle = tokio::spawn(async move {
@@ -68,18 +68,18 @@ pub struct Tick {
 
 pub struct Done;
 
-pub enum CountdownEvent {
+pub enum Event {
     Tick(Tick),
     Done(Done),
 }
 
-impl From<Tick> for CountdownEvent {
+impl From<Tick> for Event {
     fn from(value: Tick) -> Self {
         Self::Tick(value)
     }
 }
 
-impl From<Done> for CountdownEvent {
+impl From<Done> for Event {
     fn from(value: Done) -> Self {
         Self::Done(value)
     }
