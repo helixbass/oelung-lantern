@@ -7,7 +7,7 @@ use crossterm::{
 use tokio::sync::mpsc::channel;
 use tokio_stream::StreamExt;
 
-use oelung::{soft, ComponentInterface, Renderer};
+use oelung::{soft, Renderer};
 
 use oelung_lantern::{generate_sender, mpsc::Sender, spinner::snake, ReceiveEvent, SnakeSpinner};
 
@@ -34,7 +34,7 @@ async fn main() -> Result<(), anyhow::Error> {
             }
             World::SnakeSpinnerTick(tick) => {
                 spinner.receive(&tick);
-                render_screen(&mut renderer, &spinner);
+                render_screen(&mut renderer, &spinner)?;
             }
             _ => {}
         }
@@ -47,7 +47,7 @@ fn render_screen(renderer: &mut Renderer, spinner: &SnakeSpinner) -> Result<(), 
     renderer.render(soft! {
       %Text
         children => [
-          spinner
+          %spinner
           %Text " (hit q to quit)"
         ]
     })?;
