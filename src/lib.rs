@@ -3,6 +3,7 @@ mod gradient;
 pub mod mpsc;
 mod receive;
 pub mod spinner;
+pub mod storybook;
 
 pub use proc_macros::generate_sender;
 
@@ -13,3 +14,4 @@ pub use spinner::{
     BallsSpinner, BarSpinner, BounceSpinner, EllipsisSpinner, MonkeySpinner, MoonSpinner,
     PhaseSpinner, SnakeSpinner, WorldSpinner,
 };
+pub use storybook::{Storybook, StorybookBuilder};
