@@ -111,7 +111,7 @@ impl storybook::ComponentInstance<World> for spinner::SnakeSpinner {
     fn receive(&mut self, event: &World) {
         match event {
             World::SnakeSpinnerTick(tick) => {
-                ReceiveEvent::<snake::Tick>::receive(self, tick);
+                ReceiveEvent::<snake::Tick>::receive(self, tick, unimplemented!());
             }
             _ => {}
         }

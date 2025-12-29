@@ -1,3 +1,5 @@
+use std::pin::Pin;
+
 use crossterm::event::{Event, EventStream, KeyCode};
 use tokio::sync::mpsc::channel;
 use tokio_stream::StreamExt;
@@ -19,12 +21,13 @@ async fn main() -> Result<(), anyhow::Error> {
     render_screen(&mut renderer, &spinner)?;
 
     while let Some(world) = receiver.recv().await {
+        let mut queued_effects: Vec<Pin<Box<dyn Future<Output = ()> + Send + 'static>>> = vec![];
         match world {
             World::Crossterm(Event::Key(key)) if key.code == KeyCode::Char('q') => {
                 break;
             }
             World::WorldSpinnerTick(tick) => {
-                spinner.receive(&tick);
+                spinner.receive(&tick, |future| queued_effects.push(future));
                 render_screen(&mut renderer, &spinner)?;
             }
             _ => {}

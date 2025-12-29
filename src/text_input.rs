@@ -1,4 +1,7 @@
+use std::pin::Pin;
+
 use crossterm::event::{Event, KeyCode};
+use futures::future::FutureExt;
 use oelung::{anyhow, soft, Component, ComponentInterface, Grid};
 use smol_str::{SmolStr, ToSmolStr};
 use squalid::_d;
@@ -28,7 +31,7 @@ impl<'a> ComponentInterface for &'a TextInput {
 }
 
 impl ReceiveEvent<Event> for TextInput {
-    fn receive<TQueueEffect: FnMut(Box<dyn Future<Output = ()>>)>(
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()>>>)>(
         &mut self,
         event: &Event,
         mut queue_effect: TQueueEffect,
@@ -45,9 +48,10 @@ impl ReceiveEvent<Event> for TextInput {
                 queue_effect({
                     let sender = self.sender.box_clone();
                     let input = self.input.to_smolstr();
-                    Box::new(async move {
+                    async move {
                         sender.send(Done(input)).await;
-                    })
+                    }
+                    .boxed()
                 });
             }
             _ => {}

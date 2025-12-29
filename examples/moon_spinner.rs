@@ -1,10 +1,12 @@
+use std::pin::Pin;
+
 use crossterm::event::{Event, EventStream, KeyCode};
 use tokio::sync::mpsc::channel;
 use tokio_stream::StreamExt;
 
 use oelung::{soft, Renderer};
 
-use oelung_lantern::{generate_sender, mpsc::Sender, spinner::moon, ReceiveEvent, MoonSpinner};
+use oelung_lantern::{generate_sender, mpsc::Sender, spinner::moon, MoonSpinner, ReceiveEvent};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -19,15 +21,19 @@ async fn main() -> Result<(), anyhow::Error> {
     render_screen(&mut renderer, &spinner)?;
 
     while let Some(world) = receiver.recv().await {
+        let mut queued_effects: Vec<Pin<Box<dyn Future<Output = ()> + Send + 'static>>> = vec![];
         match world {
             World::Crossterm(Event::Key(key)) if key.code == KeyCode::Char('q') => {
                 break;
             }
             World::MoonSpinnerTick(tick) => {
-                spinner.receive(&tick);
+                spinner.receive(&tick, |future| queued_effects.push(future));
                 render_screen(&mut renderer, &spinner)?;
             }
             _ => {}
+        }
+        for effect in queued_effects {
+            tokio::spawn(effect);
         }
     }
 
