@@ -1,15 +1,17 @@
 use std::collections::HashMap;
 
-use crossterm::{
-    event::{Event, EventStream, KeyCode},
-    style::Color,
-};
+use crossterm::event::{Event, EventStream, KeyCode};
 use oelung::{soft, Component, Renderer};
 use smol_str::{SmolStr, ToSmolStr};
-use tokio::sync::mpsc::channel;
+use tokio::sync::mpsc::{self, channel};
 use tokio_stream::StreamExt;
 
-use oelung_lantern::{generate_sender, mpsc::Sender, spinner, storybook, StorybookBuilder};
+use oelung_lantern::{
+    generate_sender,
+    mpsc::Sender,
+    spinner::{self, snake},
+    storybook, ReceiveEvent, Storybook, StorybookBuilder,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -20,11 +22,7 @@ async fn main() -> Result<(), anyhow::Error> {
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
     let storybook = StorybookBuilder::default()
-        .components(vec![
-            storybook::ComponentBuilder::default()
-                .name("Snake spinner")
-                .
-        ])
+        .components(vec![SnakeSpinner::new()])
         .build()
         .unwrap();
 
@@ -42,23 +40,17 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn render_screen(renderer: &mut Renderer, gradient: &Gradient) -> Result<(), anyhow::Error> {
+fn render_screen(renderer: &mut Renderer, storybook: &Storybook) -> Result<(), anyhow::Error> {
     renderer.render(soft! {
       %FlexColumn
         children => [
-          %gradient
+          %storybook
           %Text "(hit q to quit)"
         ]
     })?;
 
     Ok(())
 }
-
-enum World {
-    Crossterm(Event),
-}
-
-generate_sender!(World, Crossterm, Event);
 
 fn listen_to_crossterm_events(sender: CrosstermSender) {
     tokio::spawn(async move {
@@ -74,7 +66,13 @@ fn listen_to_crossterm_events(sender: CrosstermSender) {
 
 struct SnakeSpinner {}
 
-impl storybook::Component for SnakeSpinner {
+impl SnakeSpinner {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl storybook::Component<World> for SnakeSpinner {
     fn name(&self) -> SmolStr {
         "Snake spinner".to_smolstr()
     }
@@ -89,14 +87,38 @@ impl storybook::Component for SnakeSpinner {
     fn get_component(
         &self,
         inputs: &HashMap<SmolStr, Option<storybook::InputValue>>,
-    ) -> Box<dyn storybook::ComponentInstance> {
+        sender: mpsc::Sender<World>,
+    ) -> Box<dyn storybook::ComponentInstance<World>> {
         let period = inputs["period"].as_ref().map(|input| input.as_duration());
         let color = inputs["color"].as_ref().map(|input| input.as_color());
 
-        spinner::SnakeSpinner::new(period, color)
+        Box::new(spinner::SnakeSpinner::new(
+            period,
+            color,
+            Box::new(SnakeSpinnerTickSender::from(sender)),
+        ))
+    }
+}
+
+impl storybook::ComponentInstance<World> for spinner::SnakeSpinner {
+    fn get_component<'b>(&self) -> Component<'b> {
+        Component::Component(Box::new(self))
+    }
+
+    fn receive(&mut self, event: &World) {
+        match event {
+            World::SnakeSpinnerTick(tick) => {
+                ReceiveEvent::<snake::Tick>::receive(self, tick);
+            }
+            _ => {}
+        }
     }
 }
 
 enum World {
     Crossterm(Event),
+    SnakeSpinnerTick(snake::Tick),
 }
+
+generate_sender!(World, Crossterm, Event);
+generate_sender!(World, SnakeSpinnerTick, snake::Tick);
