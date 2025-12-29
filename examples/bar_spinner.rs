@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crossterm::{
     event::{Event, EventStream, KeyCode},
     style::Color,
@@ -9,7 +7,7 @@ use tokio_stream::StreamExt;
 
 use oelung::{soft, Renderer};
 
-use oelung_lantern::{generate_sender, mpsc::Sender, spinner::bar, ReceiveEvent, BarSpinner};
+use oelung_lantern::{generate_sender, mpsc::Sender, spinner::bar, BarSpinner, ReceiveEvent};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -20,7 +18,7 @@ async fn main() -> Result<(), anyhow::Error> {
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
     let mut spinner = BarSpinner::new(
-        Duration::from_millis(600),
+        None,
         Some(Color::Green),
         Box::new(BarSpinnerTickSender::from(sender)),
     );

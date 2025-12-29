@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use crossterm::{
     event::{Event, EventStream, KeyCode},
     style::Color,
@@ -20,7 +18,7 @@ async fn main() -> Result<(), anyhow::Error> {
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
     let mut spinner = SnakeSpinner::new(
-        Duration::from_millis(1000),
+        None,
         Some(Color::Red),
         Box::new(SnakeSpinnerTickSender::from(sender)),
     );

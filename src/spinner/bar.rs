@@ -1,3 +1,4 @@
+use std::sync::LazyLock;
 use std::time::Duration;
 
 use crossterm::style::Color;
@@ -7,18 +8,28 @@ use uuid::Uuid;
 
 use crate::{mpsc::Sender, ReceiveEvent};
 
+fn steps() -> &'static [char] {
+    static STEPS: LazyLock<Vec<char>> = LazyLock::new(|| vec!['|', '/', '-', '\\']);
+    &*STEPS
+}
+
 pub struct BarSpinner {
     pub color: Option<Color>,
     pub join_handle: JoinHandle<()>,
-    pub next_step: u32,
+    pub next_step: usize,
     pub uuid: Uuid,
 }
 
 impl BarSpinner {
-    pub fn new(period: Duration, color: Option<Color>, sender: Box<dyn Sender<Tick>>) -> Self {
+    pub fn new(
+        period: Option<Duration>,
+        color: Option<Color>,
+        sender: Box<dyn Sender<Tick>>,
+    ) -> Self {
+        let period = period.unwrap_or_else(|| Duration::from_millis(600));
         let uuid = Uuid::new_v4();
         let join_handle = tokio::spawn(async move {
-            let mut interval = interval(period / 10);
+            let mut interval = interval(period / u32::try_from(steps().len()).unwrap());
             loop {
                 let _ = interval.tick().await;
                 sender.send(Tick { uuid }).await;
@@ -47,13 +58,7 @@ impl<'a> ComponentInterface for &'a BarSpinner {
             if let Some(color) = self.color {
                 text = text.color(color);
             }
-            let text = text.text_child(match self.next_step % 4 {
-                0 => "|",
-                1 => "/",
-                2 => "-",
-                3 => "\\",
-                _ => unreachable!(),
-            });
+            let text = text.text_child(steps()[self.next_step % steps().len()]);
             text.build().unwrap().into()
         })
     }
