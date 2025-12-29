@@ -1,4 +1,4 @@
-mod countdown;
+pub mod countdown;
 pub mod mpsc;
 mod receive;
 pub mod spinner;
