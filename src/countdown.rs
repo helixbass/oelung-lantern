@@ -41,13 +41,22 @@ impl Drop for Countdown {
 
 impl<'a> ComponentInterface for &'a Countdown {
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
-        let remaining = format!("{:.3}", self.started_at.elapsed().as_millis() as f64);
+        let remaining = if self.total <= self.started_at.elapsed() {
+            "0".to_owned()
+        } else {
+            let remaining = self.total - self.started_at.elapsed();
+            format!("{:.3}", (remaining.as_millis() as f64) / 1000.0)
+        };
         Ok(soft! {
             %Text children => [
               %Text remaining
               %Text "s"
             ]
         })
+    }
+
+    fn height(&self) -> Option<u16> {
+        Some(1)
     }
 }
 
