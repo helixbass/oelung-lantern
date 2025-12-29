@@ -8,6 +8,7 @@ async-trait = "0.1.89"
 crossterm = { version = "0.29.0", features = ["event-stream"] }
 oelung = { path = "../oelung" }
 proc_macros = { package = "oelung_lantern_proc_macros", path = "proc_macros" }
+squalid = { git = "https://github.com/helixbass/squalid", rev = "646f6bf" }
 tokio = { version = "1", features = [ "full" ] }
 tokio-stream = "0.1.17"
 uuid = { version = "1.19.0", features = [ "v4" ] }
