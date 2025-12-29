@@ -28,6 +28,10 @@ impl<'a> ComponentInterface for &'a TextInput {
             %Text &self.input
         })
     }
+
+    fn height(&self) -> Option<u16> {
+        Some(1)
+    }
 }
 
 impl ReceiveEvent<Event> for TextInput {
