@@ -44,6 +44,7 @@ impl ToTokens for Spec {
         let variant_name = &self.variant_name;
 
         quote! {
+            #[derive(Clone)]
             struct #struct_name {
                 pub sender: ::tokio::sync::mpsc::Sender<#enum_name>,
             }
@@ -60,6 +61,10 @@ impl ToTokens for Spec {
             impl ::oelung_lantern::mpsc::Sender<#type_> for #struct_name {
                 async fn send(&self, value: #type_) {
                     self.sender.send(#enum_name::#variant_name(value)).await.unwrap();
+                }
+
+                fn box_clone(&self) -> ::std::boxed::Box<dyn ::oelung_lantern::mpsc::Sender<#type_>> {
+                    Box::new(self.clone())
                 }
             }
         }

@@ -8,8 +8,7 @@ use uuid::Uuid;
 use crate::{mpsc::Sender, ReceiveEvent};
 
 fn steps() -> &'static [&'static str] {
-    static STEPS: LazyLock<Vec<&'static str>> =
-        LazyLock::new(|| vec!["🙈", "🙉", "🙊", "🐵"]);
+    static STEPS: LazyLock<Vec<&'static str>> = LazyLock::new(|| vec!["🙈", "🙉", "🙊", "🐵"]);
     &*STEPS
 }
 
@@ -56,7 +55,11 @@ impl<'a> ComponentInterface for &'a MonkeySpinner {
 }
 
 impl ReceiveEvent<Tick> for MonkeySpinner {
-    fn receive(&mut self, event: &Tick) {
+    fn receive<TQueueEffect: FnMut(Box<dyn Future<Output = ()>>)>(
+        &mut self,
+        event: &Tick,
+        _queue_effect: TQueueEffect,
+    ) {
         if event.uuid != self.uuid {
             return;
         }

@@ -66,7 +66,11 @@ impl<'a> ComponentInterface for &'a EllipsisSpinner {
 }
 
 impl ReceiveEvent<Tick> for EllipsisSpinner {
-    fn receive(&mut self, event: &Tick) {
+    fn receive<TQueueEffect: FnMut(Box<dyn Future<Output = ()>>)>(
+        &mut self,
+        event: &Tick,
+        _queue_effect: TQueueEffect,
+    ) {
         if event.uuid != self.uuid {
             return;
         }

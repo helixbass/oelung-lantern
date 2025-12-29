@@ -65,7 +65,11 @@ impl<'a> ComponentInterface for &'a BallsSpinner {
 }
 
 impl ReceiveEvent<Tick> for BallsSpinner {
-    fn receive(&mut self, event: &Tick) {
+    fn receive<TQueueEffect: FnMut(Box<dyn Future<Output = ()>>)>(
+        &mut self,
+        event: &Tick,
+        _queue_effect: TQueueEffect,
+    ) {
         if event.uuid != self.uuid {
             return;
         }

@@ -65,7 +65,11 @@ impl<'a> ComponentInterface for &'a BarSpinner {
 }
 
 impl ReceiveEvent<Tick> for BarSpinner {
-    fn receive(&mut self, event: &Tick) {
+    fn receive<TQueueEffect: FnMut(Box<dyn Future<Output = ()>>)>(
+        &mut self,
+        event: &Tick,
+        _queue_effect: TQueueEffect,
+    ) {
         if event.uuid != self.uuid {
             return;
         }
