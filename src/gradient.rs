@@ -1,6 +1,7 @@
 use crossterm::style::Color;
 use oelung::{anyhow, Component, ComponentInterface, FlexColumnBuilder, Grid, TextBuilder};
-use palette::{FromColor, Luv, Srgb};
+use palette::{FromColor, Luv, Mix, Srgb};
+use squalid::EverythingExt;
 
 pub struct Gradient {
     pub start_color: Luv,
@@ -19,12 +20,23 @@ impl Gradient {
         }
     }
 
+    fn get_intermediate_color(&self, step_num: u16) -> Luv {
+        self.start_color.mix(
+            self.end_color,
+            if self.width > 1 {
+                step_num as f32 / (self.width - 1) as f32
+            } else {
+                0.0
+            },
+        )
+    }
+
     fn render_row<'b>(&self) -> Component<'b> {
         let mut text = TextBuilder::default();
-        for step in 0..self.width {
+        for step_num in 0..self.width {
             text = text.nested_child(
                 TextBuilder::default()
-                    .background_color()
+                    .background_color(to_color(self.get_intermediate_color(step_num)))
                     .text_child(" ")
                     .build()
                     .unwrap(),
@@ -59,4 +71,14 @@ fn to_luv(color: Color) -> Luv {
         Color::Rgb { r, g, b } => Luv::from_color(Srgb::new(r, g, b).into_format()),
         _ => unimplemented!(),
     }
+}
+
+fn to_color(luv: Luv) -> Color {
+    Srgb::from_color(luv)
+        .into_format::<u8>()
+        .thrush(|rgb| Color::Rgb {
+            r: rgb.red,
+            g: rgb.green,
+            b: rgb.blue,
+        })
 }
