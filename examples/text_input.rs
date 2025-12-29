@@ -31,6 +31,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 if let State::Inputting(text_input) = &mut state {
                     text_input.receive(&event, |future| queued_effects.push(future));
                 }
+                render_screen(&mut renderer, &state)?;
             }
             World::TextInputDone(done) => {
                 state = State::Done(done.0);
@@ -51,7 +52,12 @@ fn render_screen(renderer: &mut Renderer, state: &State) -> Result<(), anyhow::E
         children => [
           match state {
               State::Inputting(text_input) => soft! { %text_input },
-              State::Done(value) => soft! { %Text value },
+              State::Done(value) => soft! {
+                %Text children => [
+                  %Text "You entered: "
+                  %Text value
+                ]
+              },
           }
           %Text "(hit q to quit)"
         ]
