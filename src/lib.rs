@@ -5,4 +5,4 @@ pub mod spinner;
 pub use proc_macros::generate_sender;
 
 pub use receive::ReceiveEvent;
-pub use spinner::{BarSpinner, SnakeSpinner};
+pub use spinner::{BarSpinner, BounceSpinner, SnakeSpinner};
