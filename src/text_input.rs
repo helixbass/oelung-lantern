@@ -59,4 +59,4 @@ impl ReceiveEvent<Event> for TextInput {
     }
 }
 
-pub struct Done(SmolStr);
+pub struct Done(pub SmolStr);

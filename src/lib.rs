@@ -5,7 +5,7 @@ pub mod mpsc;
 mod receive;
 pub mod spinner;
 pub mod storybook;
-mod text_input;
+pub mod text_input;
 
 pub use proc_macros::generate_sender;
 
