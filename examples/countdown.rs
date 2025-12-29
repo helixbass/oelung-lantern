@@ -31,7 +31,7 @@ async fn main() -> Result<(), anyhow::Error> {
             World::Countdown(countdown::Event::Tick { .. }) => {
                 render_screen(&mut renderer, countdown.as_ref())?;
             }
-            World::Countdown(countdown::Event::Done) => {
+            World::Countdown(countdown::Event::Done(_)) => {
                 countdown = None;
                 render_screen(&mut renderer, countdown.as_ref())?;
             }
@@ -49,7 +49,7 @@ fn render_screen(
     renderer.render(soft! {
       %FlexColumn
         children => [
-          match countdown => {
+          %match countdown {
               Some(countdown) => soft! { %countdown },
               None => soft! { %Text "Done!" }
           }
