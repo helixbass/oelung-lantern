@@ -2,12 +2,43 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use crossterm::style::Color;
+use oelung::{anyhow, ComponentInterface, Grid};
 use smol_str::SmolStr;
+use squalid::_d;
 use tokio::sync::mpsc;
 
-pub struct Storybook {}
+use crate::Error;
 
-pub struct StorybookBuilder {}
+pub struct Storybook<TWorld> {
+    pub components: Vec<Box<dyn Component<TWorld>>>,
+}
+
+pub struct StorybookBuilder<TWorld> {
+    pub components: Option<Vec<Box<dyn Component<TWorld>>>>,
+}
+
+impl<TWorld> Default for StorybookBuilder<TWorld> {
+    fn default() -> Self {
+        Self { components: _d() }
+    }
+}
+
+impl<TWorld> StorybookBuilder<TWorld> {
+    pub fn components(mut self, components: Vec<Box<dyn Component<TWorld>>>) -> Self {
+        self.components = Some(components);
+        self
+    }
+
+    pub fn build(self) -> Result<Storybook<TWorld>, Error> {
+        unimplemented!()
+    }
+}
+
+impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
+    fn render<'b>(&self, _grid: Grid) -> Result<oelung::Component<'b>, anyhow::Error> {
+        unimplemented!()
+    }
+}
 
 pub enum InputValue {
     Color(Color),

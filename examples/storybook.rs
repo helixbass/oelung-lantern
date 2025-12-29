@@ -22,7 +22,7 @@ async fn main() -> Result<(), anyhow::Error> {
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
     let storybook = StorybookBuilder::default()
-        .components(vec![SnakeSpinner::new()])
+        .components(vec![Box::new(SnakeSpinner::new())])
         .build()
         .unwrap();
 
@@ -40,7 +40,10 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-fn render_screen(renderer: &mut Renderer, storybook: &Storybook) -> Result<(), anyhow::Error> {
+fn render_screen(
+    renderer: &mut Renderer,
+    storybook: &Storybook<World>,
+) -> Result<(), anyhow::Error> {
     renderer.render(soft! {
       %FlexColumn
         children => [

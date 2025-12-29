@@ -1,4 +1,5 @@
 pub mod countdown;
+mod error;
 mod gradient;
 pub mod mpsc;
 mod receive;
@@ -8,6 +9,7 @@ pub mod storybook;
 pub use proc_macros::generate_sender;
 
 pub use countdown::Countdown;
+pub use error::Error;
 pub use gradient::Gradient;
 pub use receive::ReceiveEvent;
 pub use spinner::{

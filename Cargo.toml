@@ -11,6 +11,7 @@ palette = "0.7.6"
 proc_macros = { package = "oelung_lantern_proc_macros", path = "proc_macros" }
 smol_str = "0.3.4"
 squalid = { git = "https://github.com/helixbass/squalid", rev = "646f6bf" }
+thiserror = "2.0.17"
 tokio = { version = "1", features = [ "full" ] }
 tokio-stream = "0.1.17"
 uuid = { version = "1.19.0", features = [ "v4" ] }
