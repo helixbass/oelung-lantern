@@ -1,16 +1,17 @@
 use crossterm::event::{Event, KeyCode};
 use oelung::{anyhow, soft, Component, ComponentInterface, Grid};
+use smol_str::{SmolStr, ToSmolStr};
 use squalid::_d;
 
 use crate::{mpsc::Sender, ReceiveEvent};
 
 pub struct TextInput {
     pub input: String,
-    pub sender: Box<dyn Sender<Event>>,
+    pub sender: Box<dyn Sender<Done>>,
 }
 
 impl TextInput {
-    pub fn new(sender: Box<dyn Sender<Event>>) -> Self {
+    pub fn new(sender: Box<dyn Sender<Done>>) -> Self {
         Self {
             input: _d(),
             sender,
@@ -36,7 +37,12 @@ impl ReceiveEvent<Event> for TextInput {
                 };
                 self.input.push(ch);
             }
+            Event::Key(key) if key.code == KeyCode::Enter => {
+                self.sender.send(Done(self.input.to_smolstr())).await;
+            }
             _ => {}
         }
     }
 }
+
+pub struct Done(SmolStr);
