@@ -31,7 +31,7 @@ impl<'a> ComponentInterface for &'a TextInput {
 }
 
 impl ReceiveEvent<Event> for TextInput {
-    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()>>>)>(
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         event: &Event,
         mut queue_effect: TQueueEffect,

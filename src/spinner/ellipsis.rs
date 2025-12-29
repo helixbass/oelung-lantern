@@ -67,7 +67,7 @@ impl<'a> ComponentInterface for &'a EllipsisSpinner {
 }
 
 impl ReceiveEvent<Tick> for EllipsisSpinner {
-    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()>>>)>(
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         event: &Tick,
         _queue_effect: TQueueEffect,

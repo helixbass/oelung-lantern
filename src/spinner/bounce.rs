@@ -67,7 +67,7 @@ impl<'a> ComponentInterface for &'a BounceSpinner {
 }
 
 impl ReceiveEvent<Tick> for BounceSpinner {
-    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()>>>)>(
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         event: &Tick,
         _queue_effect: TQueueEffect,

@@ -56,7 +56,7 @@ impl<'a> ComponentInterface for &'a WorldSpinner {
 }
 
 impl ReceiveEvent<Tick> for WorldSpinner {
-    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()>>>)>(
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         event: &Tick,
         _queue_effect: TQueueEffect,

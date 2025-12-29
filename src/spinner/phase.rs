@@ -70,7 +70,7 @@ impl<'a> ComponentInterface for &'a PhaseSpinner {
 }
 
 impl ReceiveEvent<Tick> for PhaseSpinner {
-    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()>>>)>(
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         event: &Tick,
         _queue_effect: TQueueEffect,
