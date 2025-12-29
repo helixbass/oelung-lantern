@@ -7,4 +7,5 @@ pub use proc_macros::generate_sender;
 pub use receive::ReceiveEvent;
 pub use spinner::{
     BallsSpinner, BarSpinner, BounceSpinner, EllipsisSpinner, PhaseSpinner, SnakeSpinner,
+    WorldSpinner,
 };

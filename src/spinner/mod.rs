@@ -4,6 +4,7 @@ pub mod bounce;
 pub mod ellipsis;
 pub mod phase;
 pub mod snake;
+pub mod world;
 
 pub use balls::BallsSpinner;
 pub use bar::BarSpinner;
@@ -11,3 +12,4 @@ pub use bounce::BounceSpinner;
 pub use ellipsis::EllipsisSpinner;
 pub use phase::PhaseSpinner;
 pub use snake::SnakeSpinner;
+pub use world::WorldSpinner;
