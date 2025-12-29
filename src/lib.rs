@@ -5,6 +5,7 @@ pub mod mpsc;
 mod receive;
 pub mod spinner;
 pub mod storybook;
+mod text_input;
 
 pub use proc_macros::generate_sender;
 
@@ -17,3 +18,4 @@ pub use spinner::{
     PhaseSpinner, SnakeSpinner, WorldSpinner,
 };
 pub use storybook::{Storybook, StorybookBuilder};
+pub use text_input::TextInput;
