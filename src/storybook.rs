@@ -93,6 +93,6 @@ pub trait Component<TWorld> {
 }
 
 pub trait ComponentInstance<TWorld> {
-    fn get_component<'b>(&self) -> oelung::Component<'b>;
+    fn get_component<'a>(&'a self) -> oelung::Component<'a>;
     fn receive(&mut self, event: &TWorld);
 }
