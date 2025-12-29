@@ -28,7 +28,11 @@ impl<'a> ComponentInterface for &'a TextInput {
 }
 
 impl ReceiveEvent<Event> for TextInput {
-    fn receive(&mut self, event: &Event) {
+    fn receive<TQueueEffect: FnMut(Box<dyn Future<Output = ()>>)>(
+        &mut self,
+        event: &Event,
+        mut queue_effect: TQueueEffect,
+    ) {
         match event {
             Event::Key(key) if matches!(key.code, KeyCode::Char(_)) => {
                 let ch = match key.code {
@@ -38,7 +42,13 @@ impl ReceiveEvent<Event> for TextInput {
                 self.input.push(ch);
             }
             Event::Key(key) if key.code == KeyCode::Enter => {
-                self.sender.send(Done(self.input.to_smolstr())).await;
+                queue_effect({
+                    let sender = self.sender.box_clone();
+                    let input = self.input.to_smolstr();
+                    Box::new(async move {
+                        sender.send(Done(input)).await;
+                    })
+                });
             }
             _ => {}
         }
