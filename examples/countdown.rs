@@ -49,7 +49,7 @@ fn render_screen(
     renderer.render(soft! {
       %FlexColumn
         children => [
-          %match countdown {
+          match countdown {
               Some(countdown) => soft! { %countdown },
               None => soft! { %Text "Done!" }
           }
