@@ -14,20 +14,22 @@ pub struct Countdown {
 }
 
 impl Countdown {
-    pub fn new(total: Duration, sender: Box<dyn Sender<Tick>>) -> Self {
+    pub fn new(total: Duration, sender: Box<dyn Sender<CountdownEvent>>) -> Self {
         let uuid = Uuid::new_v4();
+        let started_at = Instant::now();
         let join_handle = tokio::spawn(async move {
             let mut interval = interval(Duration::from_millis(1));
-            loop {
+            while total > started_at.elapsed() {
                 let _ = interval.tick().await;
-                sender.send(Tick { uuid }).await;
+                sender.send(Tick { uuid }.into()).await;
             }
+            sender.send(Done.into()).await;
         });
 
         Self {
             total,
             join_handle,
-            started_at: Instant::now(),
+            started_at,
             uuid,
         }
     }
@@ -62,4 +64,23 @@ impl<'a> ComponentInterface for &'a Countdown {
 
 pub struct Tick {
     pub uuid: Uuid,
+}
+
+pub struct Done;
+
+pub enum CountdownEvent {
+    Tick(Tick),
+    Done(Done),
+}
+
+impl From<Tick> for CountdownEvent {
+    fn from(value: Tick) -> Self {
+        Self::Tick(value)
+    }
+}
+
+impl From<Done> for CountdownEvent {
+    fn from(value: Done) -> Self {
+        Self::Done(value)
+    }
 }
