@@ -1,6 +1,7 @@
 use crossterm::style::Color;
 use oelung::{anyhow, Component, ComponentInterface, FlexColumnBuilder, Grid, TextBuilder};
 use palette::{Luv, Mix};
+use tracing::instrument;
 
 use crate::{to_color, to_luv};
 
@@ -21,6 +22,7 @@ impl Gradient {
         }
     }
 
+    #[instrument(level = "trace", skip(self, step_num))]
     fn get_intermediate_color(&self, step_num: u16) -> Luv {
         self.start_color.mix(
             self.end_color,
@@ -32,6 +34,7 @@ impl Gradient {
         )
     }
 
+    #[instrument(level = "trace", skip(self))]
     fn render_row<'b>(&self) -> Component<'b> {
         let mut text = TextBuilder::default();
         for step_num in 0..self.width {
@@ -48,6 +51,7 @@ impl Gradient {
 }
 
 impl<'a> ComponentInterface for &'a Gradient {
+    #[instrument(level = "trace", skip(self, _grid))]
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         Ok({
             if self.height > 1 {

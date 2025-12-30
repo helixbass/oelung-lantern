@@ -5,6 +5,7 @@ use std::time::Duration;
 use crossterm::style::Color;
 use oelung::{anyhow, Component, ComponentInterface, Grid, TextBuilder};
 use tokio::{task::JoinHandle, time::interval};
+use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{mpsc::Sender, ReceiveEvent};
@@ -23,6 +24,7 @@ pub struct SnakeSpinner {
 }
 
 impl SnakeSpinner {
+    #[instrument(level = "trace", skip(period, color, sender))]
     pub fn new(
         period: Option<Duration>,
         color: Option<Color>,
@@ -54,6 +56,7 @@ impl Drop for SnakeSpinner {
 }
 
 impl<'a> ComponentInterface for &'a SnakeSpinner {
+    #[instrument(level = "trace", skip(self, _grid))]
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         // TODO: maybe expose `maybe_color => self.color`
         // on `%Text`?
@@ -73,6 +76,7 @@ impl<'a> ComponentInterface for &'a SnakeSpinner {
 }
 
 impl ReceiveEvent<Tick> for SnakeSpinner {
+    #[instrument(level = "trace", skip(self, event, _queue_effect))]
     fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         event: &Tick,

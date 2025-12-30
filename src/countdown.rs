@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 
 use oelung::{anyhow, soft, Component, ComponentInterface, Grid};
 use tokio::{task::JoinHandle, time::interval};
+use tracing::instrument;
 use uuid::Uuid;
 
 use crate::mpsc::Sender;
@@ -14,6 +15,7 @@ pub struct Countdown {
 }
 
 impl Countdown {
+    #[instrument(level = "trace", skip(total, sender))]
     pub fn new(total: Duration, sender: Box<dyn Sender<Event>>) -> Self {
         let uuid = Uuid::new_v4();
         let started_at = Instant::now();
@@ -42,6 +44,7 @@ impl Drop for Countdown {
 }
 
 impl<'a> ComponentInterface for &'a Countdown {
+    #[instrument(level = "trace", skip(self, _grid))]
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         let remaining = if self.total <= self.started_at.elapsed() {
             "0".to_owned()

@@ -3,6 +3,7 @@ use std::pin::Pin;
 use crossterm::style::Color;
 use oelung::{anyhow, Component, ComponentInterface, FlexColumnBuilder, Grid, TextBuilder};
 use palette::{Luv, Mix};
+use tracing::instrument;
 
 use crate::{
     animation, mpsc::Sender, to_color, to_luv, Animation, AnimationInstance, AnimationRepeat,
@@ -42,16 +43,19 @@ impl AnimatedGradient {
         }
     }
 
+    #[instrument(level = "trace", skip(self))]
     fn current_start_color(&self) -> Luv {
         self.start_color
             .interpolate(&self.finish_start_color, self.animation.current_progress())
     }
 
+    #[instrument(level = "trace", skip(self))]
     fn current_end_color(&self) -> Luv {
         self.end_color
             .interpolate(&self.finish_end_color, self.animation.current_progress())
     }
 
+    #[instrument(level = "trace", skip(self))]
     fn get_intermediate_color(&self, step_num: u16) -> Luv {
         self.current_start_color().mix(
             self.current_end_color(),
@@ -63,6 +67,7 @@ impl AnimatedGradient {
         )
     }
 
+    #[instrument(level = "trace", skip(self))]
     fn render_row<'b>(&self) -> Component<'b> {
         let mut text = TextBuilder::default();
         for step_num in 0..self.width {
@@ -79,6 +84,7 @@ impl AnimatedGradient {
 }
 
 impl<'a> ComponentInterface for &'a AnimatedGradient {
+    #[instrument(level = "trace", skip(self, _grid))]
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         Ok({
             if self.height > 1 {
@@ -101,6 +107,7 @@ impl<'a> ComponentInterface for &'a AnimatedGradient {
 pub type Event = animation::Event;
 
 impl ReceiveEvent<animation::Tick> for AnimatedGradient {
+    #[instrument(level = "trace", skip(self, tick, queue_effect))]
     fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         tick: &animation::Tick,

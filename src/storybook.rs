@@ -6,6 +6,7 @@ use oelung::{anyhow, ComponentInterface, Grid};
 use smol_str::SmolStr;
 use squalid::_d;
 use tokio::sync::mpsc;
+use tracing::instrument;
 
 use crate::Error;
 
@@ -35,6 +36,7 @@ impl<TWorld> StorybookBuilder<TWorld> {
 }
 
 impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
+    #[instrument(level = "trace", skip(self, _grid))]
     fn render<'b>(&self, _grid: Grid) -> Result<oelung::Component<'b>, anyhow::Error> {
         unimplemented!()
     }

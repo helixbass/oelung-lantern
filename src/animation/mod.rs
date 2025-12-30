@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 use derive_builder::Builder;
 use futures::future::FutureExt;
 use tokio::{task::JoinHandle, time::interval};
+use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{mpsc::Sender, ReceiveEvent};
@@ -30,6 +31,7 @@ pub enum Easing {
 }
 
 impl Easing {
+    #[instrument(level = "trace", skip(self, progress))]
     pub fn interpolate(&self, progress: f32) -> f32 {
         assert!(progress >= 0.0 && progress <= 1.0);
         match self {
@@ -56,6 +58,7 @@ impl AnimationInstance {
         Self::Running(AnimationInstanceRunning::new(repeat, animation, sender))
     }
 
+    #[instrument(level = "trace", skip(self))]
     pub fn current_progress(&self) -> f32 {
         let progress = self.current_progress_uneased();
         match self {
@@ -64,6 +67,7 @@ impl AnimationInstance {
         }
     }
 
+    #[instrument(level = "trace", skip(self))]
     pub fn current_progress_uneased(&self) -> f32 {
         match self {
             Self::Done { repeat, .. } => match repeat {
@@ -113,6 +117,7 @@ impl AnimationInstance {
 }
 
 impl ReceiveEvent<Tick> for AnimationInstance {
+    #[instrument(level = "trace", skip(self, tick, queue_effect))]
     fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         tick: &Tick,
@@ -151,6 +156,7 @@ pub struct AnimationInstanceRunning {
 }
 
 impl AnimationInstanceRunning {
+    #[instrument(level = "trace", skip(repeat, animation, sender))]
     pub fn new(
         repeat: AnimationRepeat,
         animation: Animation,
@@ -178,6 +184,7 @@ impl AnimationInstanceRunning {
         }
     }
 
+    #[instrument(level = "trace", skip(self))]
     pub fn is_done(&self) -> bool {
         let elapsed = self.started_at.elapsed();
         match self.repeat {

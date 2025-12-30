@@ -4,6 +4,7 @@ use std::time::Duration;
 
 use oelung::{anyhow, Component, ComponentInterface, Grid, TextBuilder};
 use tokio::{task::JoinHandle, time::interval};
+use tracing::instrument;
 use uuid::Uuid;
 
 use crate::{mpsc::Sender, ReceiveEvent};
@@ -20,6 +21,7 @@ pub struct MonkeySpinner {
 }
 
 impl MonkeySpinner {
+    #[instrument(level = "trace", skip(period, sender))]
     pub fn new(period: Option<Duration>, sender: Box<dyn Sender<Tick>>) -> Self {
         let period = period.unwrap_or_else(|| Duration::from_millis(1200));
         let uuid = Uuid::new_v4();
@@ -46,6 +48,7 @@ impl Drop for MonkeySpinner {
 }
 
 impl<'a> ComponentInterface for &'a MonkeySpinner {
+    #[instrument(level = "trace", skip(self, _grid))]
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         Ok({
             let text = TextBuilder::default();
@@ -56,6 +59,7 @@ impl<'a> ComponentInterface for &'a MonkeySpinner {
 }
 
 impl ReceiveEvent<Tick> for MonkeySpinner {
+    #[instrument(level = "trace", skip(self, event, _queue_effect))]
     fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         event: &Tick,

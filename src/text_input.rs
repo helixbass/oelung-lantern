@@ -5,6 +5,7 @@ use futures::future::FutureExt;
 use oelung::{anyhow, soft, Component, ComponentInterface, Grid};
 use smol_str::{SmolStr, ToSmolStr};
 use squalid::_d;
+use tracing::instrument;
 
 use crate::{mpsc::Sender, ReceiveEvent};
 
@@ -23,6 +24,7 @@ impl TextInput {
 }
 
 impl<'a> ComponentInterface for &'a TextInput {
+    #[instrument(level = "trace", skip(self, _grid))]
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         Ok(soft! {
             %Text &self.input
@@ -35,6 +37,7 @@ impl<'a> ComponentInterface for &'a TextInput {
 }
 
 impl ReceiveEvent<Event> for TextInput {
+    #[instrument(level = "trace", skip(self, event, queue_effect))]
     fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         event: &Event,
