@@ -43,37 +43,25 @@ impl AnimatedGradient {
         }
     }
 
-    #[instrument(level = "trace", skip(self))]
+    // #[instrument(level = "trace", skip(self))]
     fn current_start_color(&self) -> Luv {
         self.start_color
             .interpolate(&self.finish_start_color, self.animation.current_progress())
     }
 
-    #[instrument(level = "trace", skip(self))]
+    // #[instrument(level = "trace", skip(self))]
     fn current_end_color(&self) -> Luv {
         self.end_color
             .interpolate(&self.finish_end_color, self.animation.current_progress())
     }
 
     #[instrument(level = "trace", skip(self))]
-    fn get_intermediate_color(&self, step_num: u16) -> Luv {
-        self.current_start_color().mix(
-            self.current_end_color(),
-            if self.width > 1 {
-                step_num as f32 / (self.width - 1) as f32
-            } else {
-                0.0
-            },
-        )
-    }
-
-    #[instrument(level = "trace", skip(self))]
-    fn render_row<'b>(&self) -> Component<'b> {
+    fn render_row<'b>(&self, steps: &[Color]) -> Component<'b> {
         let mut text = TextBuilder::default();
-        for step_num in 0..self.width {
+        for step in steps {
             text = text.nested_child(
                 TextBuilder::default()
-                    .background_color(to_color(self.get_intermediate_color(step_num)))
+                    .background_color(*step)
                     .text_child(" ")
                     .build()
                     .unwrap(),
@@ -87,14 +75,27 @@ impl<'a> ComponentInterface for &'a AnimatedGradient {
     #[instrument(level = "trace", skip(self, _grid))]
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         Ok({
+            let current_start_color = self.current_start_color();
+            let current_end_color = self.current_end_color();
+            let steps = (0..self.width)
+                .into_iter()
+                .map(|step_num| {
+                    to_color(get_intermediate_color(
+                        current_start_color,
+                        current_end_color,
+                        self.width,
+                        step_num,
+                    ))
+                })
+                .collect::<Vec<_>>();
             if self.height > 1 {
                 let mut flex_column = FlexColumnBuilder::default();
                 for _ in 0..self.height {
-                    flex_column = flex_column.child(self.render_row());
+                    flex_column = flex_column.child(self.render_row(&steps));
                 }
                 flex_column.build().unwrap().into()
             } else {
-                self.render_row()
+                self.render_row(&steps)
             }
         })
     }
@@ -115,4 +116,16 @@ impl ReceiveEvent<animation::Tick> for AnimatedGradient {
     ) {
         self.animation.receive(tick, queue_effect);
     }
+}
+
+// #[instrument(level = "trace", skip(self))]
+fn get_intermediate_color(start_color: Luv, end_color: Luv, num_steps: u16, step_num: u16) -> Luv {
+    start_color.mix(
+        end_color,
+        if num_steps > 1 {
+            step_num as f32 / (num_steps - 1) as f32
+        } else {
+            0.0
+        },
+    )
 }

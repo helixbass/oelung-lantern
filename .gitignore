@@ -5,3 +5,5 @@ Cargo.lock
 /proc_macros/Cargo.lock
 
 tmp*
+
+trace-*.json
