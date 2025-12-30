@@ -1,5 +1,6 @@
 mod animated_gradient;
 mod animation;
+mod color;
 pub mod countdown;
 mod error;
 mod gradient;
