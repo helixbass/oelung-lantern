@@ -2,6 +2,7 @@ use std::pin::Pin;
 use std::time::{Duration, Instant};
 
 use derive_builder::Builder;
+use futures::future::FutureExt;
 use tokio::{task::JoinHandle, time::interval};
 use uuid::Uuid;
 
@@ -52,22 +53,7 @@ impl AnimationInstance {
         animation: Animation,
         sender: Box<dyn Sender<Event>>,
     ) -> Self {
-        let uuid = Uuid::new_v4();
-        let join_handle = tokio::spawn(async move {
-            let mut interval = interval(Duration::from_millis(25));
-            loop {
-                let _ = interval.tick().await;
-                sender.send(Tick { uuid }.into()).await;
-            }
-        });
-
-        Self::Running(AnimationInstanceRunning {
-            repeat,
-            animation,
-            started_at: Instant::now(),
-            join_handle,
-            uuid,
-        })
+        Self::Running(AnimationInstanceRunning::new(repeat, animation, sender))
     }
 }
 
@@ -75,7 +61,7 @@ impl ReceiveEvent<Tick> for AnimationInstance {
     fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         tick: &Tick,
-        _queue_effect: TQueueEffect,
+        mut queue_effect: TQueueEffect,
     ) {
         let Self::Running(running) = self else {
             return;
@@ -84,6 +70,14 @@ impl ReceiveEvent<Tick> for AnimationInstance {
             return;
         }
         if running.is_done() {
+            queue_effect({
+                let sender = running.sender.box_clone();
+                let uuid = running.uuid;
+                async move {
+                    sender.send(Done { uuid }.into()).await;
+                }
+                .boxed()
+            });
             *self = AnimationInstance::Done;
         }
     }
@@ -95,9 +89,37 @@ pub struct AnimationInstanceRunning {
     pub started_at: Instant,
     pub join_handle: JoinHandle<()>,
     pub uuid: Uuid,
+    pub sender: Box<dyn Sender<Event>>,
 }
 
 impl AnimationInstanceRunning {
+    pub fn new(
+        repeat: AnimationRepeat,
+        animation: Animation,
+        sender: Box<dyn Sender<Event>>,
+    ) -> Self {
+        let uuid = Uuid::new_v4();
+        let join_handle = tokio::spawn({
+            let sender = sender.box_clone();
+            async move {
+                let mut interval = interval(Duration::from_millis(25));
+                loop {
+                    let _ = interval.tick().await;
+                    sender.send(Tick { uuid }.into()).await;
+                }
+            }
+        });
+
+        Self {
+            repeat,
+            animation,
+            started_at: Instant::now(),
+            join_handle,
+            uuid,
+            sender,
+        }
+    }
+
     pub fn is_done(&self) -> bool {
         let elapsed = self.started_at.elapsed();
         match self.repeat {
