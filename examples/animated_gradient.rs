@@ -7,21 +7,10 @@ use tokio_stream::StreamExt;
 
 use oelung::{soft, Renderer};
 
-use oelung_lantern::{generate_sender, mpsc::Sender, Gradient};
-
-enum AnimationRepeat {
-    ForwardOnce,
-    ForwardInfinite,
-    ForwardNTimes(u32),
-    ForwardAndBackOnce,
-    ForwardAndBackInfinite,
-    ForwardAndBackNTimes(u32),
-}
-
-struct Animation {
-    pub duration: Duration,
-    pub easing: Easing,
-}
+use oelung_lantern::{
+    animated_gradient, generate_sender, mpsc::Sender, AnimatedGradient, AnimationBuilder,
+    AnimationRepeat,
+};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
