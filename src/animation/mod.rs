@@ -44,7 +44,7 @@ pub trait Interpolateable {
 
 pub enum AnimationInstance {
     Running(AnimationInstanceRunning),
-    Done,
+    Done { uuid: Uuid },
 }
 
 impl AnimationInstance {
@@ -78,7 +78,7 @@ impl ReceiveEvent<Tick> for AnimationInstance {
                 }
                 .boxed()
             });
-            *self = AnimationInstance::Done;
+            *self = AnimationInstance::Done { uuid: running.uuid };
         }
     }
 }
@@ -130,6 +130,12 @@ impl AnimationInstanceRunning {
             AnimationRepeat::ForwardAndBackInfinite => false,
             AnimationRepeat::ForwardAndBackNTimes(n) => elapsed > self.animation.duration * n * 2,
         }
+    }
+}
+
+impl Drop for AnimationInstanceRunning {
+    fn drop(&mut self) {
+        self.join_handle.abort();
     }
 }
 
