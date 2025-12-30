@@ -1,10 +1,11 @@
+use std::pin::Pin;
 use std::time::{Duration, Instant};
 
 use derive_builder::Builder;
 use tokio::{task::JoinHandle, time::interval};
 use uuid::Uuid;
 
-use crate::mpsc::Sender;
+use crate::{mpsc::Sender, ReceiveEvent};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum AnimationRepeat {
@@ -41,13 +42,7 @@ pub trait Interpolateable {
 }
 
 pub enum AnimationInstance {
-    Running {
-        repeat: AnimationRepeat,
-        animation: Animation,
-        started_at: Instant,
-        join_handle: JoinHandle<()>,
-        uuid: Uuid,
-    },
+    Running(AnimationInstanceRunning),
     Done,
 }
 
@@ -66,26 +61,53 @@ impl AnimationInstance {
             }
         });
 
-        Self::Running {
+        Self::Running(AnimationInstanceRunning {
             repeat,
             animation,
             started_at: Instant::now(),
             join_handle,
             uuid,
+        })
+    }
+}
+
+impl ReceiveEvent<Tick> for AnimationInstance {
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
+        &mut self,
+        tick: &Tick,
+        _queue_effect: TQueueEffect,
+    ) {
+        let Self::Running(running) = self else {
+            return;
+        };
+        if tick.uuid != running.uuid {
+            return;
+        }
+        if running.is_done() {
+            *self = AnimationInstance::Done;
         }
     }
 }
 
-impl ReceiveEvent<Event> for AnimationInstance {
-    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
-        &mut self,
-        event: &Event,
-        _queue_effect: TQueueEffect,
-    ) {
-        if event.uuid() != self.uuid {
-            return;
+pub struct AnimationInstanceRunning {
+    pub repeat: AnimationRepeat,
+    pub animation: Animation,
+    pub started_at: Instant,
+    pub join_handle: JoinHandle<()>,
+    pub uuid: Uuid,
+}
+
+impl AnimationInstanceRunning {
+    pub fn is_done(&self) -> bool {
+        let elapsed = self.started_at.elapsed();
+        match self.repeat {
+            AnimationRepeat::ForwardOnce => elapsed > self.animation.duration,
+            AnimationRepeat::ForwardInfinite => false,
+            AnimationRepeat::ForwardNTimes(n) => elapsed > self.animation.duration * n,
+            AnimationRepeat::ForwardAndBackOnce => elapsed > self.animation.duration * 2,
+            AnimationRepeat::ForwardAndBackInfinite => false,
+            AnimationRepeat::ForwardAndBackNTimes(n) => elapsed > self.animation.duration * n * 2,
         }
-        self.next_step += 1;
     }
 }
 
