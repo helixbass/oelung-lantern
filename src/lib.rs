@@ -1,4 +1,4 @@
-mod animated_gradient;
+pub mod animated_gradient;
 pub mod animation;
 pub mod color;
 pub mod countdown;

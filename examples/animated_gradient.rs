@@ -1,3 +1,6 @@
+use std::pin::Pin;
+use std::time::Duration;
+
 use crossterm::{
     event::{Event, EventStream, KeyCode},
     style::Color,
@@ -9,7 +12,7 @@ use oelung::{soft, Renderer};
 
 use oelung_lantern::{
     animated_gradient, generate_sender, mpsc::Sender, AnimatedGradient, AnimationBuilder,
-    AnimationRepeat,
+    AnimationRepeat, Easing, ReceiveEvent,
 };
 
 #[tokio::main]
@@ -20,7 +23,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
-    let gradient = AnimatedGradient::new(
+    let mut gradient = AnimatedGradient::new(
         Color::Rgb {
             r: 20,
             g: 20,
@@ -60,8 +63,8 @@ async fn main() -> Result<(), anyhow::Error> {
             World::Crossterm(Event::Key(key)) if key.code == KeyCode::Char('q') => {
                 break;
             }
-            World::AnimatedGradient(event) => {
-                gradient.receive(&event, |future| queued_effects.push(future));
+            World::AnimatedGradient(animated_gradient::Event::Tick(tick)) => {
+                gradient.receive(&tick, |future| queued_effects.push(future));
                 render_screen(&mut renderer, &gradient)?;
             }
             _ => {}
