@@ -44,7 +44,7 @@ pub trait Interpolateable {
 
 pub enum AnimationInstance {
     Running(AnimationInstanceRunning),
-    Done { uuid: Uuid },
+    Done { uuid: Uuid, repeat: AnimationRepeat },
 }
 
 impl AnimationInstance {
@@ -54,6 +54,53 @@ impl AnimationInstance {
         sender: Box<dyn Sender<Event>>,
     ) -> Self {
         Self::Running(AnimationInstanceRunning::new(repeat, animation, sender))
+    }
+
+    pub fn current_progress(&self) -> f32 {
+        match self {
+            Self::Done { repeat, .. } => match repeat {
+                AnimationRepeat::ForwardOnce => 1.0,
+                AnimationRepeat::ForwardNTimes(_) => 1.0,
+                AnimationRepeat::ForwardAndBackOnce => 0.0,
+                AnimationRepeat::ForwardAndBackNTimes(_) => 1.0,
+                _ => unreachable!(),
+            },
+            Self::Running(running) => {
+                if running.is_done() {
+                    return match running.repeat {
+                        AnimationRepeat::ForwardOnce => 1.0,
+                        AnimationRepeat::ForwardNTimes(_) => 1.0,
+                        AnimationRepeat::ForwardAndBackOnce => 0.0,
+                        AnimationRepeat::ForwardAndBackNTimes(_) => 1.0,
+                        _ => unreachable!(),
+                    };
+                }
+                let elapsed = running.started_at.elapsed();
+                let num_durations =
+                    (elapsed.as_millis() as f32) / (running.animation.duration.as_millis() as f32);
+                let num_completed_durations = num_durations.floor();
+                let progress_in_this_duration = num_durations - num_completed_durations;
+                match running.repeat {
+                    AnimationRepeat::ForwardOnce => {
+                        assert!(num_completed_durations == 0.0);
+                        progress_in_this_duration
+                    }
+                    AnimationRepeat::ForwardInfinite | AnimationRepeat::ForwardNTimes(_) => {
+                        progress_in_this_duration
+                    }
+                    AnimationRepeat::ForwardAndBackOnce
+                    | AnimationRepeat::ForwardAndBackInfinite
+                    | AnimationRepeat::ForwardAndBackNTimes(_) => {
+                        let is_going_forward = (num_completed_durations as u32) % 2 == 0;
+                        if is_going_forward {
+                            progress_in_this_duration
+                        } else {
+                            1.0 - progress_in_this_duration
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
