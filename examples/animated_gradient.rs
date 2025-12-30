@@ -35,17 +35,17 @@ async fn main() -> Result<(), anyhow::Error> {
             b: 245,
         },
         Color::Rgb {
-            r: 45,
-            g: 20,
-            b: 20,
-        },
-        Color::Rgb {
             r: 245,
             g: 20,
             b: 20,
         },
-        1,
-        40,
+        Color::Rgb {
+            r: 45,
+            g: 20,
+            b: 20,
+        },
+        10,
+        80,
         AnimationRepeat::ForwardAndBackInfinite,
         AnimationBuilder::default()
             .duration(Duration::from_millis(2400))
