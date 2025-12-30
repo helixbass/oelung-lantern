@@ -1,5 +1,5 @@
 mod animated_gradient;
-mod animation;
+pub mod animation;
 mod color;
 pub mod countdown;
 mod error;
@@ -13,7 +13,9 @@ pub mod text_input;
 pub use proc_macros::generate_sender;
 
 pub use animated_gradient::AnimatedGradient;
-pub use animation::{Animation, AnimationBuilder, AnimationRepeat, Easing, Interpolateable};
+pub use animation::{
+    Animation, AnimationBuilder, AnimationInstance, AnimationRepeat, Easing, Interpolateable,
+};
 pub use countdown::Countdown;
 pub use error::Error;
 pub use gradient::Gradient;
