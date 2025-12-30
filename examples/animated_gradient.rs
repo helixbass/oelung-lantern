@@ -7,8 +7,6 @@ use crossterm::{
 };
 use tokio::sync::mpsc::channel;
 use tokio_stream::StreamExt;
-use tracing_chrome::ChromeLayerBuilder;
-use tracing_subscriber::prelude::*;
 
 use oelung::{soft, Renderer};
 
@@ -19,9 +17,6 @@ use oelung_lantern::{
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let (chrome_layer, _guard) = ChromeLayerBuilder::new().build();
-    tracing_subscriber::registry().with(chrome_layer).init();
-
     let mut renderer = Renderer::try_new()?;
 
     let (sender, mut receiver) = channel::<World>(100);
