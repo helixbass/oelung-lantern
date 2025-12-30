@@ -49,7 +49,7 @@ async fn main() -> Result<(), anyhow::Error> {
             .easing(Easing::Linear)
             .build()
             .unwrap(),
-        Box::new(AnimatedGradientTickSender::from(sender)),
+        Box::new(AnimatedGradientSender::from(sender)),
     );
 
     render_screen(&mut renderer, &gradient)?;
@@ -60,8 +60,8 @@ async fn main() -> Result<(), anyhow::Error> {
             World::Crossterm(Event::Key(key)) if key.code == KeyCode::Char('q') => {
                 break;
             }
-            World::AnimatedGradientTick(tick) => {
-                gradient.receive(&tick, |future| queued_effects.push(future));
+            World::AnimatedGradient(event) => {
+                gradient.receive(&event, |future| queued_effects.push(future));
                 render_screen(&mut renderer, &gradient)?;
             }
             _ => {}
@@ -91,11 +91,11 @@ fn render_screen(
 
 enum World {
     Crossterm(Event),
-    AnimatedGradientTick(animated_gradient::Tick),
+    AnimatedGradient(animated_gradient::Event),
 }
 
 generate_sender!(World, Crossterm, Event);
-generate_sender!(World, AnimatedGradientTick, animated_gradient::Tick);
+generate_sender!(World, AnimatedGradient, animated_gradient::Event);
 
 fn listen_to_crossterm_events(sender: CrosstermSender) {
     tokio::spawn(async move {

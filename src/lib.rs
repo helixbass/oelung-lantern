@@ -1,6 +1,6 @@
 mod animated_gradient;
 pub mod animation;
-mod color;
+pub mod color;
 pub mod countdown;
 mod error;
 mod gradient;
@@ -16,6 +16,7 @@ pub use animated_gradient::AnimatedGradient;
 pub use animation::{
     Animation, AnimationBuilder, AnimationInstance, AnimationRepeat, Easing, Interpolateable,
 };
+pub use color::{to_color, to_luv};
 pub use countdown::Countdown;
 pub use error::Error;
 pub use gradient::Gradient;

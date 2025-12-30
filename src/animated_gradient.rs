@@ -2,28 +2,57 @@ use crossterm::style::Color;
 use oelung::{anyhow, Component, ComponentInterface, FlexColumnBuilder, Grid, TextBuilder};
 use palette::{Luv, Mix};
 
-use crate::{to_color, to_luv};
+use crate::{
+    animation, mpsc::Sender, to_color, to_luv, Animation, AnimationInstance, AnimationRepeat,
+    Interpolateable,
+};
 
-pub struct Gradient {
+pub struct AnimatedGradient {
     pub start_color: Luv,
     pub end_color: Luv,
+    pub finish_start_color: Luv,
+    pub finish_end_color: Luv,
     pub height: u16,
     pub width: u16,
+    pub animation: AnimationInstance,
 }
 
-impl Gradient {
-    pub fn new(start_color: Color, end_color: Color, height: u16, width: u16) -> Self {
+impl AnimatedGradient {
+    pub fn new(
+        start_color: Color,
+        end_color: Color,
+        finish_start_color: Color,
+        finish_end_color: Color,
+        height: u16,
+        width: u16,
+        animation_repeat: AnimationRepeat,
+        animation: Animation,
+        sender: Box<dyn Sender<Event>>,
+    ) -> Self {
         Self {
             start_color: to_luv(start_color),
             end_color: to_luv(end_color),
+            finish_start_color: to_luv(finish_start_color),
+            finish_end_color: to_luv(finish_end_color),
             height,
             width,
+            animation: AnimationInstance::new(animation_repeat, animation, sender),
         }
     }
 
+    fn current_start_color(&self) -> Luv {
+        self.start_color
+            .interpolate(&self.finish_start_color, self.animation.current_progress())
+    }
+
+    fn current_end_color(&self) -> Luv {
+        self.end_color
+            .interpolate(&self.finish_end_color, self.animation.current_progress())
+    }
+
     fn get_intermediate_color(&self, step_num: u16) -> Luv {
-        self.start_color.mix(
-            self.end_color,
+        self.current_start_color().mix(
+            self.current_end_color(),
             if self.width > 1 {
                 step_num as f32 / (self.width - 1) as f32
             } else {
@@ -47,7 +76,7 @@ impl Gradient {
     }
 }
 
-impl<'a> ComponentInterface for &'a Gradient {
+impl<'a> ComponentInterface for &'a AnimatedGradient {
     fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         Ok({
             if self.height > 1 {
@@ -66,3 +95,5 @@ impl<'a> ComponentInterface for &'a Gradient {
         Some(self.height)
     }
 }
+
+pub type Event = animation::Event;

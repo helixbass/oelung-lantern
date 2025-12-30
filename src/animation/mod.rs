@@ -39,7 +39,7 @@ impl Easing {
 }
 
 pub trait Interpolateable {
-    fn interpolate(start: &Self, end: &Self, progress: f32) -> Self;
+    fn interpolate(&self, other: &Self, progress: f32) -> Self;
 }
 
 pub enum AnimationInstance {
