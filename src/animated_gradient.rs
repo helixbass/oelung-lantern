@@ -1,10 +1,12 @@
+use std::pin::Pin;
+
 use crossterm::style::Color;
 use oelung::{anyhow, Component, ComponentInterface, FlexColumnBuilder, Grid, TextBuilder};
 use palette::{Luv, Mix};
 
 use crate::{
     animation, mpsc::Sender, to_color, to_luv, Animation, AnimationInstance, AnimationRepeat,
-    Interpolateable,
+    Interpolateable, ReceiveEvent,
 };
 
 pub struct AnimatedGradient {
@@ -97,3 +99,13 @@ impl<'a> ComponentInterface for &'a AnimatedGradient {
 }
 
 pub type Event = animation::Event;
+
+impl ReceiveEvent<animation::Tick> for AnimatedGradient {
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
+        &mut self,
+        tick: &animation::Tick,
+        queue_effect: TQueueEffect,
+    ) {
+        self.animation.receive(tick, queue_effect);
+    }
+}
