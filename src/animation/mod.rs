@@ -57,6 +57,14 @@ impl AnimationInstance {
     }
 
     pub fn current_progress(&self) -> f32 {
+        let progress = self.current_progress_uneased();
+        match self {
+            Self::Done { .. } => progress,
+            Self::Running(running) => running.animation.easing.interpolate(progress),
+        }
+    }
+
+    pub fn current_progress_uneased(&self) -> f32 {
         match self {
             Self::Done { repeat, .. } => match repeat {
                 AnimationRepeat::ForwardOnce => 1.0,
@@ -125,7 +133,10 @@ impl ReceiveEvent<Tick> for AnimationInstance {
                 }
                 .boxed()
             });
-            *self = AnimationInstance::Done { uuid: running.uuid };
+            *self = AnimationInstance::Done {
+                uuid: running.uuid,
+                repeat: running.repeat,
+            };
         }
     }
 }
