@@ -1,15 +1,10 @@
-use std::pin::Pin;
-
-use crossterm::{
-    event::{Event, EventStream, KeyCode},
-    style::Color,
-};
+use crossterm::event::{Event, EventStream, KeyCode};
 use tokio::sync::mpsc::channel;
 use tokio_stream::StreamExt;
 
 use oelung::{soft, Renderer};
 
-use oelung_lantern::{generate_sender, mpsc::Sender, PartialColumn, ReceiveEvent};
+use oelung_lantern::{generate_sender, mpsc::Sender, PartialColumn};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -29,7 +24,6 @@ async fn main() -> Result<(), anyhow::Error> {
     render_screen(&mut renderer, &text, current_top_line_num)?;
 
     while let Some(world) = receiver.recv().await {
-        let mut queued_effects: Vec<Pin<Box<dyn Future<Output = ()> + Send + 'static>>> = vec![];
         match world {
             World::Crossterm(Event::Key(key)) if key.code == KeyCode::Char('q') => {
                 break;
@@ -46,9 +40,6 @@ async fn main() -> Result<(), anyhow::Error> {
             }
             _ => {}
         }
-        for effect in queued_effects {
-            tokio::spawn(effect);
-        }
     }
 
     Ok(())
@@ -64,7 +55,7 @@ fn render_screen(
         children => [
           %PartialColumn::new(
               current_top_line_num,
-              |line_num| soft! { %Text &text[line_num] }
+              |line_num| Ok(soft! { %Text &text[line_num] })
           )
           %Text "(hit q to quit, u to scroll back, d to scroll down)"
         ]
