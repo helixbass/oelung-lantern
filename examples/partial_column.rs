@@ -50,16 +50,17 @@ fn render_screen(
     text: &[String],
     current_top_line_num: usize,
 ) -> Result<(), anyhow::Error> {
-    renderer.render(soft! {
-      %FlexColumn
-        children => [
-          %PartialColumn::new(
-              current_top_line_num,
-              |line_num| Ok(soft! { %Text &text[line_num] })
-          )
-          %Text "(hit q to quit, u to scroll back, d to scroll down)"
-        ]
-    })?;
+    unimplemented!();
+    // renderer.render(soft! {
+    //   %FlexColumn
+    //     children => [
+    //       %PartialColumn::new(
+    //           current_top_line_num,
+    //           |line_num| Ok(soft! { %Text &text[line_num] })
+    //       )
+    //       %Text "(hit q to quit, u to scroll back, d to scroll down)"
+    //     ]
+    // })?;
 
     Ok(())
 }
