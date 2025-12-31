@@ -17,25 +17,26 @@ impl<'a, TRenderRow: 'a + Fn(usize) -> Result<Component<'a>, anyhow::Error>>
     }
 }
 
-// impl<'a, TRenderRow: 'a + Fn(usize) -> Result<Component<'a>, anyhow::Error>> ComponentInterface
-//     for PartialColumn<'a, TRenderRow>
-// {
-//     #[instrument(level = "trace", skip(self, grid))]
-//     fn render<'b>(&self, grid: Grid) -> Result<Component<'b>, anyhow::Error> {
-//         Ok({
-//             let mut flex_column = FlexColumnBuilder::default();
-//             for line_num in self.top_line_num..self.top_line_num + usize::from(grid.height) {
-//                 flex_column = flex_column.child((self.render_row)(line_num)?);
-//             }
-//             flex_column.build().unwrap().into()
-//         })
-//     }
+impl<'a, TRenderRow: 'a + Fn(usize) -> Result<Component<'a>, anyhow::Error>> ComponentInterface
+    for PartialColumn<'a, TRenderRow>
+{
+    #[instrument(level = "trace", skip(self, grid))]
+    fn render(&self, grid: Grid) -> Result<Component<'_>, anyhow::Error> {
+        // Ok({
+        //     let mut flex_column = FlexColumnBuilder::default();
+        //     for line_num in self.top_line_num..self.top_line_num + usize::from(grid.height) {
+        //         flex_column = flex_column.child((self.render_row)(line_num)?);
+        //     }
+        //     flex_column.build().unwrap().into()
+        // })
+        Ok({ (self.render_row)(0)? })
+    }
 
-//     fn flex_grow(&self) -> Option<f64> {
-//         Some(1.0)
-//     }
-// }
+    fn flex_grow(&self) -> Option<f64> {
+        Some(1.0)
+    }
+}
 
 // pub trait PartialColumnCallback {
-//     fn render_row<'b>(&self, )
+//     fn render_row(&self, )
 // }
