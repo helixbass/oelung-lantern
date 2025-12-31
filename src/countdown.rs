@@ -43,9 +43,9 @@ impl Drop for Countdown {
     }
 }
 
-impl<'a> ComponentInterface<'static> for &'a Countdown {
+impl<'a> ComponentInterface for &'a Countdown {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render(&self, _grid: Grid) -> Result<Component<'static, 'static>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
         let remaining = if self.total <= self.started_at.elapsed() {
             "0".to_owned()
         } else {
