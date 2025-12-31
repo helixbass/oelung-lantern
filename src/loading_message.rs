@@ -23,6 +23,8 @@ impl<'a> ComponentInterface for &'a LoadingMessage {
         Ok(soft! {
             %Text children => [
               %&self.spinner
+              %Text " "
+              %Text &self.message
             ]
         })
     }
