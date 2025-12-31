@@ -5,6 +5,7 @@ pub mod countdown;
 mod error;
 mod gradient;
 pub mod mpsc;
+mod partial_column;
 mod receive;
 pub mod spinner;
 pub mod storybook;
@@ -20,6 +21,7 @@ pub use color::{to_color, to_luv};
 pub use countdown::Countdown;
 pub use error::Error;
 pub use gradient::Gradient;
+pub use partial_column::PartialColumn;
 pub use receive::ReceiveEvent;
 pub use spinner::{
     BallsSpinner, BarSpinner, BounceSpinner, EllipsisSpinner, MonkeySpinner, MoonSpinner,
