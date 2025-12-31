@@ -35,7 +35,7 @@ impl Gradient {
     }
 
     #[instrument(level = "trace", skip(self))]
-    fn render_row<'b>(&self) -> Component<'b> {
+    fn render_row(&self) -> Component<'static, 'static> {
         let mut text = TextBuilder::default();
         for step_num in 0..self.width {
             text = text.nested_child(
@@ -50,9 +50,9 @@ impl Gradient {
     }
 }
 
-impl<'a> ComponentInterface for &'a Gradient {
+impl<'a> ComponentInterface<'static> for &'a Gradient {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<Component<'static, 'static>, anyhow::Error> {
         Ok({
             if self.height > 1 {
                 let mut flex_column = FlexColumnBuilder::default();

@@ -54,9 +54,9 @@ impl Drop for BarSpinner {
     }
 }
 
-impl<'a> ComponentInterface for &'a BarSpinner {
+impl<'a> ComponentInterface<'static> for &'a BarSpinner {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<Component<'static, 'static>, anyhow::Error> {
         Ok({
             let mut text = TextBuilder::default();
             if let Some(color) = self.color {

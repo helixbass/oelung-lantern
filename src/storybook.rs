@@ -35,9 +35,9 @@ impl<TWorld> StorybookBuilder<TWorld> {
     }
 }
 
-impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
+impl<'a, TWorld> ComponentInterface<'static> for &'a Storybook<TWorld> {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render<'b>(&self, _grid: Grid) -> Result<oelung::Component<'b>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'static, 'static>, anyhow::Error> {
         unimplemented!()
     }
 }
@@ -95,6 +95,6 @@ pub trait Component<TWorld> {
 }
 
 pub trait ComponentInstance<TWorld> {
-    fn get_component(&self) -> oelung::Component<'_>;
+    fn get_component(&self) -> oelung::Component<'_, '_>;
     fn receive(&mut self, event: &TWorld);
 }

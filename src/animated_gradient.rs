@@ -56,7 +56,7 @@ impl AnimatedGradient {
     }
 
     #[instrument(level = "trace", skip(self))]
-    fn render_row<'b>(&self, steps: &[Color]) -> Component<'b> {
+    fn render_row(&self, steps: &[Color]) -> Component<'static, 'static> {
         let mut text = TextBuilder::default();
         for step in steps {
             text = text.nested_child(
@@ -71,9 +71,9 @@ impl AnimatedGradient {
     }
 }
 
-impl<'a> ComponentInterface for &'a AnimatedGradient {
+impl<'a> ComponentInterface<'static> for &'a AnimatedGradient {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<Component<'static, 'static>, anyhow::Error> {
         Ok({
             let current_start_color = self.current_start_color();
             let current_end_color = self.current_end_color();

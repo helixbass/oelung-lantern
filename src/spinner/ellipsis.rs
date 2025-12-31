@@ -55,9 +55,9 @@ impl Drop for EllipsisSpinner {
     }
 }
 
-impl<'a> ComponentInterface for &'a EllipsisSpinner {
+impl<'a> ComponentInterface<'static> for &'a EllipsisSpinner {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render<'b>(&self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<Component<'static, 'static>, anyhow::Error> {
         Ok({
             let mut text = TextBuilder::default();
             if let Some(color) = self.color {
