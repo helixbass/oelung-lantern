@@ -57,10 +57,10 @@ fn render_screen(
     loading_message: &LoadingMessage,
 ) -> Result<(), anyhow::Error> {
     renderer.render(soft! {
-      %Text
+      %FlexColumn
         children => [
           %loading_message
-          %Text " (hit q to quit)"
+          %Text "(hit q to quit)"
         ]
     })?;
 

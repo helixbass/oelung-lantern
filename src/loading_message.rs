@@ -28,6 +28,10 @@ impl<'a> ComponentInterface for &'a LoadingMessage {
             ]
         })
     }
+
+    fn height(&self) -> Option<u16> {
+        Some(1)
+    }
 }
 
 impl ReceiveEvent<snake::Tick> for LoadingMessage {
