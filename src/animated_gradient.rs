@@ -73,7 +73,7 @@ impl AnimatedGradient {
 
 impl<'a> ComponentInterface for &'a AnimatedGradient {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
+    fn render<'b: 'c, 'c>(&'c self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         Ok({
             let current_start_color = self.current_start_color();
             let current_end_color = self.current_end_color();

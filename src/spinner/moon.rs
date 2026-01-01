@@ -50,7 +50,7 @@ impl Drop for MoonSpinner {
 
 impl<'a> ComponentInterface for &'a MoonSpinner {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
+    fn render<'b: 'c, 'c>(&'c self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         Ok({
             let text = TextBuilder::default();
             let text = text.text_child(steps()[self.next_step % steps().len()]);

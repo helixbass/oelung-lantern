@@ -25,7 +25,7 @@ impl TextInput {
 
 impl<'a> ComponentInterface for &'a TextInput {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
+    fn render<'b: 'c, 'c>(&'c self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         Ok(soft! {
             %Text &self.input
         })

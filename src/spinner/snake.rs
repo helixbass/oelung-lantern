@@ -57,7 +57,7 @@ impl Drop for SnakeSpinner {
 
 impl<'a> ComponentInterface for &'a SnakeSpinner {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
+    fn render<'b: 'c, 'c>(&'c self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
         // TODO: maybe expose `maybe_color => self.color`
         // on `%Text`?
         // Ok(soft! {
