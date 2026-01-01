@@ -1,4 +1,4 @@
-use oelung::{anyhow, Component, ComponentInterface, Grid, Relative};
+use oelung::{anyhow, soft, Component, ComponentInterface, Grid, Relative};
 
 use crate::{Gradient, GradientBuilder};
 
@@ -29,14 +29,18 @@ impl<'a> GradientBackground<'a> {
 
 impl<'a> ComponentInterface for GradientBackground<'a> {
     fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
-        unimplemented!()
+        Ok(soft! {
+            %FlexColumn
+              children => [
+                %Absolute
+                  content => soft! { %&self.gradient }
+                self.content.clone()
+              ]
+              relative => Relative::NotMoved
+        })
     }
 
     fn height(&self) -> Option<u16> {
         self.content.height()
-    }
-
-    fn relative(&self) -> Option<Relative> {
-        Some(Relative::NotMoved)
     }
 }
