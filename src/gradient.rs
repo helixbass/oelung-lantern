@@ -52,7 +52,7 @@ impl Gradient {
 
 impl<'a> ComponentInterface for &'a Gradient {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render<'b: 'c, 'c>(&'c self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
         Ok({
             if self.height > 1 {
                 let mut flex_column = FlexColumnBuilder::default();

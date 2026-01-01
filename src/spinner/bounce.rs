@@ -57,7 +57,7 @@ impl Drop for BounceSpinner {
 
 impl<'a> ComponentInterface for &'a BounceSpinner {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render<'b: 'c, 'c>(&'c self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
         Ok({
             let mut text = TextBuilder::default();
             if let Some(color) = self.color {

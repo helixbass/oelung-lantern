@@ -19,7 +19,7 @@ impl LoadingMessage {
 
 impl<'a> ComponentInterface for &'a LoadingMessage {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render<'b: 'c, 'c>(&'c self, _grid: Grid) -> Result<Component<'b>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
         Ok(soft! {
             %Text children => [
               %&self.spinner

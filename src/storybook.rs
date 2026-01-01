@@ -37,7 +37,7 @@ impl<TWorld> StorybookBuilder<TWorld> {
 
 impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
     #[instrument(level = "trace", skip(self, _grid))]
-    fn render<'b: 'c, 'c>(&'c self, _grid: Grid) -> Result<oelung::Component<'b>, anyhow::Error> {
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
         unimplemented!()
     }
 }

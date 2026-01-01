@@ -1,6 +1,4 @@
-use oelung::{
-    anyhow, Component, ComponentInterface, FlexColumnBuilder, Grid, IRenderStuffThatOutlivesMe,
-};
+use oelung::{anyhow, Component, ComponentInterface, FlexColumnBuilder, Grid};
 use tracing::instrument;
 
 pub struct PartialColumn<'a, TRenderRow: 'a + Fn(usize) -> Result<Component<'a>, anyhow::Error>> {
@@ -23,7 +21,7 @@ impl<'a, TRenderRow: 'a + Fn(usize) -> Result<Component<'a>, anyhow::Error>> Com
     for PartialColumn<'a, TRenderRow>
 {
     #[instrument(level = "trace", skip(self, grid))]
-    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
+    fn render(&self, grid: Grid) -> Result<Component<'_>, anyhow::Error> {
         // Ok({
         //     let mut flex_column = FlexColumnBuilder::default();
         //     for line_num in self.top_line_num..self.top_line_num + usize::from(grid.height) {
@@ -31,21 +29,7 @@ impl<'a, TRenderRow: 'a + Fn(usize) -> Result<Component<'a>, anyhow::Error>> Com
         //     }
         //     flex_column.build().unwrap().into()
         // })
-        unreachable!()
-    }
-
-    fn maybe_render_stuff_that_outlives_me<'b>(
-        &self,
-        _grid: Grid,
-    ) -> Option<Result<Component<'b>, anyhow::Error>> {
-        Some(Ok({
-            match (self.render_row)(0) {
-                Ok(value) => value,
-                Err(err) => {
-                    return Some(Err(err.into()));
-                }
-            }
-        }))
+        Ok({ (self.render_row)(0)? })
     }
 
     fn flex_grow(&self) -> Option<f64> {
@@ -56,12 +40,3 @@ impl<'a, TRenderRow: 'a + Fn(usize) -> Result<Component<'a>, anyhow::Error>> Com
 // pub trait PartialColumnCallback {
 //     fn render_row(&self, )
 // }
-
-impl<'a, TRenderRow: 'a + Fn(usize) -> Result<Component<'a>, anyhow::Error>>
-    IRenderStuffThatOutlivesMe<'a> for PartialColumn<'a, TRenderRow>
-{
-    #[instrument(level = "trace", skip(self, grid))]
-    fn render(&self, grid: Grid) -> Result<Component<'a>, anyhow::Error> {
-        Ok((self.render_row)(0)?)
-    }
-}
