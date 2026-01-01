@@ -1,27 +1,42 @@
 use crossterm::style::Color;
+use derive_builder::Builder;
 use oelung::{anyhow, Component, ComponentInterface, FlexColumnBuilder, Grid, TextBuilder};
 use palette::{Luv, Mix};
 use tracing::instrument;
 
 use crate::{to_color, to_luv};
 
+#[derive(Builder)]
 pub struct Gradient {
+    #[builder(setter(custom))]
     pub start_color: Luv,
+    #[builder(setter(custom))]
     pub end_color: Luv,
     pub height: u16,
     pub width: u16,
 }
 
-impl Gradient {
-    pub fn new(start_color: Color, end_color: Color, height: u16, width: u16) -> Self {
-        Self {
-            start_color: to_luv(start_color),
-            end_color: to_luv(end_color),
-            height,
-            width,
-        }
+impl GradientBuilder {
+    pub fn start_color(&mut self, start_color: Color) -> &mut Self {
+        self.start_color = Some(to_luv(start_color));
+        self
     }
 
+    pub fn end_color(&mut self, end_color: Color) -> &mut Self {
+        self.end_color = Some(to_luv(end_color));
+        self
+    }
+
+    pub fn is_height_set(&self) -> bool {
+        self.height.is_some()
+    }
+
+    pub fn is_width_set(&self) -> bool {
+        self.width.is_some()
+    }
+}
+
+impl Gradient {
     #[instrument(level = "trace", skip(self, step_num))]
     fn get_intermediate_color(&self, step_num: u16) -> Luv {
         self.start_color.mix(

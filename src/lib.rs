@@ -4,6 +4,7 @@ pub mod color;
 pub mod countdown;
 mod error;
 mod gradient;
+mod gradient_background;
 mod loading_message;
 pub mod mpsc;
 mod partial_column;
@@ -21,7 +22,8 @@ pub use animation::{
 pub use color::{to_color, to_luv};
 pub use countdown::Countdown;
 pub use error::Error;
-pub use gradient::Gradient;
+pub use gradient::{Gradient, GradientBuilder};
+pub use gradient_background::GradientBackground;
 pub use loading_message::LoadingMessage;
 pub use partial_column::PartialColumn;
 pub use receive::ReceiveEvent;

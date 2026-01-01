@@ -7,7 +7,7 @@ use tokio_stream::StreamExt;
 
 use oelung::{soft, Renderer};
 
-use oelung_lantern::{generate_sender, mpsc::Sender, Gradient};
+use oelung_lantern::{generate_sender, mpsc::Sender, Gradient, GradientBuilder};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -17,20 +17,21 @@ async fn main() -> Result<(), anyhow::Error> {
 
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
-    let gradient = Gradient::new(
-        Color::Rgb {
+    let gradient = GradientBuilder::default()
+        .start_color(Color::Rgb {
             r: 20,
             g: 20,
             b: 45,
-        },
-        Color::Rgb {
+        })
+        .end_color(Color::Rgb {
             r: 20,
             g: 20,
             b: 245,
-        },
-        1,
-        40,
-    );
+        })
+        .height(1)
+        .width(40)
+        .build()
+        .unwrap();
 
     render_screen(&mut renderer, &gradient)?;
 
