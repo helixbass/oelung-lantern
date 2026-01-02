@@ -12,6 +12,7 @@ mod partial_column;
 mod receive;
 pub mod spinner;
 pub mod storybook;
+mod tabs;
 pub mod text_input;
 
 pub use proc_macros::generate_sender;
@@ -34,4 +35,5 @@ pub use spinner::{
     PhaseSpinner, SnakeSpinner, WorldSpinner,
 };
 pub use storybook::{Storybook, StorybookBuilder};
+pub use tabs::{Tab, Tabs, TabsList};
 pub use text_input::TextInput;

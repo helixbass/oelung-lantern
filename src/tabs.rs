@@ -1,0 +1,36 @@
+use oelung::{anyhow, Component, ComponentInterface, Grid};
+use smallvec::SmallVec;
+use smol_str::SmolStr;
+
+pub struct Tabs<'a> {
+    pub tabs: TabsList<'a>,
+    pub selected_index: usize,
+}
+
+impl<'a> Tabs<'a> {
+    pub fn new(tabs: TabsList<'a>, selected_index: usize) -> Self {
+        Self {
+            tabs,
+            selected_index,
+        }
+    }
+}
+
+impl<'a> ComponentInterface for &'a Tabs<'_> {
+    fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
+        unimplemented!()
+    }
+}
+
+pub type TabsList<'a> = SmallVec<Tab<'a>, 10>;
+
+pub struct Tab<'a> {
+    pub label: SmolStr,
+    pub component: Component<'a>,
+}
+
+impl<'a> Tab<'a> {
+    pub fn new(label: SmolStr, component: Component<'a>) -> Self {
+        Self { label, component }
+    }
+}
