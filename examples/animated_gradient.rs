@@ -13,8 +13,8 @@ use tokio_stream::StreamExt;
 use oelung::{soft, Renderer};
 
 use oelung_lantern::{
-    animated_gradient, generate_sender, mpsc::Sender, AnimatedGradient, AnimationBuilder,
-    AnimationRepeat, Easing, ReceiveEvent,
+    animated_gradient, generate_sender, mpsc::Sender, AnimatedGradient, AnimatedGradientBuilder,
+    AnimationBuilder, AnimationRepeat, Easing, ReceiveEvent,
 };
 
 #[tokio::main]
@@ -28,37 +28,40 @@ async fn main() -> Result<(), anyhow::Error> {
 
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
-    let mut gradient = AnimatedGradient::new(
-        Color::Rgb {
+    let mut gradient = AnimatedGradientBuilder::default()
+        .start_color(Color::Rgb {
             r: 20,
             g: 20,
             b: 45,
-        },
-        Color::Rgb {
+        })
+        .end_color(Color::Rgb {
             r: 20,
             g: 20,
             b: 245,
-        },
-        Color::Rgb {
+        })
+        .finish_start_color(Color::Rgb {
             r: 245,
             g: 20,
             b: 20,
-        },
-        Color::Rgb {
+        })
+        .finish_end_color(Color::Rgb {
             r: 45,
             g: 20,
             b: 20,
-        },
-        10,
-        80,
-        AnimationRepeat::ForwardAndBackInfinite,
-        AnimationBuilder::default()
-            .duration(Duration::from_millis(2400))
-            .easing(Easing::Linear)
-            .build()
-            .unwrap(),
-        Box::new(AnimatedGradientSender::from(sender)),
-    );
+        })
+        .height(10)
+        .width(80)
+        .animation_repeat(AnimationRepeat::ForwardAndBackInfinite)
+        .animation(
+            AnimationBuilder::default()
+                .duration(Duration::from_millis(2400))
+                .easing(Easing::Linear)
+                .build()
+                .unwrap(),
+        )
+        .sender(Box::new(AnimatedGradientSender::from(sender)))
+        .build()
+        .unwrap();
 
     render_screen(&mut renderer, &gradient)?;
 

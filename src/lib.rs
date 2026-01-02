@@ -15,7 +15,7 @@ pub mod text_input;
 
 pub use proc_macros::generate_sender;
 
-pub use animated_gradient::AnimatedGradient;
+pub use animated_gradient::{AnimatedGradient, AnimatedGradientBuilder};
 pub use animation::{
     Animation, AnimationBuilder, AnimationInstance, AnimationRepeat, Easing, Interpolateable,
 };
