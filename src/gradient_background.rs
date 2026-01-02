@@ -9,7 +9,7 @@ pub struct GradientBackground<'a> {
 }
 
 impl<'a> GradientBackground<'a> {
-    pub fn new(mut gradient: GradientBuilder, content: Component<'a>, width: u16) -> Self {
+    pub fn new(gradient: &mut GradientBuilder, content: Component<'a>, width: u16) -> Self {
         assert!(!gradient.is_height_set());
         assert!(!gradient.is_width_set());
 
