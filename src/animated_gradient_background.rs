@@ -2,14 +2,14 @@ use oelung::{anyhow, soft, Component, ComponentInterface, Grid, Relative};
 
 use crate::{AnimatedGradient, AnimatedGradientBuilder};
 
-pub struct AnimatedGradientBackground<'a> {
-    pub gradient: AnimatedGradient,
+pub struct AnimatedGradientBackground<'a, 'b> {
+    pub gradient: AnimatedGradient<'b>,
     pub content: Component<'a>,
     pub width: u16,
 }
 
-impl<'a> AnimatedGradientBackground<'a> {
-    pub fn new(gradient: AnimatedGradientBuilder, content: Component<'a>, width: u16) -> Self {
+impl<'a, 'b> AnimatedGradientBackground<'a, 'b> {
+    pub fn new(gradient: AnimatedGradientBuilder<'b>, content: Component<'a>, width: u16) -> Self {
         assert!(!gradient.is_height_set());
         assert!(!gradient.is_width_set());
 
@@ -27,7 +27,7 @@ impl<'a> AnimatedGradientBackground<'a> {
     }
 }
 
-impl<'a> ComponentInterface for AnimatedGradientBackground<'a> {
+impl<'a, 'b> ComponentInterface for AnimatedGradientBackground<'a, 'b> {
     fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
         Ok(soft! {
             %FlexColumn
