@@ -1,6 +1,7 @@
 use std::pin::Pin;
 
 use crossterm::style::Color;
+use maybe_owned::MaybeOwned;
 use oelung::{anyhow, Component, ComponentInterface, FlexColumnBuilder, Grid, TextBuilder};
 use palette::{Luv, Mix};
 use squalid::OptionExt;
@@ -11,31 +12,31 @@ use crate::{
     Error, Interpolateable, ReceiveEvent,
 };
 
-pub struct AnimatedGradient {
+pub struct AnimatedGradient<'a> {
     pub start_color: Luv,
     pub end_color: Luv,
     pub finish_start_color: Luv,
     pub finish_end_color: Luv,
     pub height: u16,
     pub width: u16,
-    pub animation: AnimationInstance,
+    pub animation: MaybeOwned<'a, AnimationInstance>,
 }
 
 #[derive(Default)]
-pub struct AnimatedGradientBuilder {
+pub struct AnimatedGradientBuilder<'a> {
     pub start_color: Option<Luv>,
     pub end_color: Option<Luv>,
     pub finish_start_color: Option<Luv>,
     pub finish_end_color: Option<Luv>,
     pub height: Option<u16>,
     pub width: Option<u16>,
-    pub animation_instance: Option<AnimationInstance>,
+    pub animation_instance: Option<MaybeOwned<'a, AnimationInstance>>,
     pub animation_repeat: Option<AnimationRepeat>,
     pub animation: Option<Animation>,
     pub sender: Option<Box<dyn Sender<Event>>>,
 }
 
-impl AnimatedGradientBuilder {
+impl<'a> AnimatedGradientBuilder<'a> {
     pub fn start_color(mut self, start_color: Color) -> Self {
         self.start_color = Some(to_luv(start_color));
         self
@@ -66,11 +67,14 @@ impl AnimatedGradientBuilder {
         self
     }
 
-    pub fn animation_instance(mut self, animation_instance: AnimationInstance) -> Self {
+    pub fn animation_instance(
+        mut self,
+        animation_instance: impl Into<MaybeOwned<'a, AnimationInstance>>,
+    ) -> Self {
         if self.animation_repeat.is_some() || self.animation.is_some() || self.sender.is_some() {
             panic!("Can't use both `.animation_instance()` and individual `.animation_repeat()`/`.animation()`/`.sender()` methods");
         }
-        self.animation_instance = Some(animation_instance);
+        self.animation_instance = Some(animation_instance.into());
         self
     }
 
@@ -106,7 +110,7 @@ impl AnimatedGradientBuilder {
         self.width.is_some()
     }
 
-    pub fn build(self) -> Result<AnimatedGradient, Error> {
+    pub fn build(self) -> Result<AnimatedGradient<'a>, Error> {
         Ok(AnimatedGradient {
             start_color: self.start_color.ok_or_else(|| {
                 Error::AnimatedGradientBuilder("expected `start_color`".to_owned())
@@ -140,14 +144,14 @@ impl AnimatedGradientBuilder {
                     self
                         .sender
                         .ok_or_else(|| Error::AnimatedGradientBuilder("expected `sender`".to_owned()))?,
-                )))
+                ).into()))
             })?
             .ok_or_else(|| Error::AnimatedGradientBuilder("expected `animation_instance` or `animation` + `sender` + `animation_repeat`".to_owned()))?,
         })
     }
 }
 
-impl AnimatedGradient {
+impl AnimatedGradient<'_> {
     // #[instrument(level = "trace", skip(self))]
     fn current_start_color(&self) -> Luv {
         self.start_color
@@ -176,7 +180,7 @@ impl AnimatedGradient {
     }
 }
 
-impl<'a> ComponentInterface for &'a AnimatedGradient {
+impl<'a> ComponentInterface for &'a AnimatedGradient<'_> {
     #[instrument(level = "trace", skip(self, _grid))]
     fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
         Ok({
@@ -212,14 +216,19 @@ impl<'a> ComponentInterface for &'a AnimatedGradient {
 
 pub type Event = animation::Event;
 
-impl ReceiveEvent<animation::Tick> for AnimatedGradient {
+impl ReceiveEvent<animation::Tick> for AnimatedGradient<'_> {
     #[instrument(level = "trace", skip(self, tick, queue_effect))]
     fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         tick: &animation::Tick,
         queue_effect: TQueueEffect,
     ) {
-        self.animation.receive(tick, queue_effect);
+        // `.as_mut().unwrap()` should be a reasonable assertion here
+        // because we should only be wired up to receive events for
+        // our animation instance if we own it (ie AnimatedGradient can
+        // be used in "part of the state" mode or "transient ephemeral
+        // rendering" mode)
+        self.animation.as_mut().unwrap().receive(tick, queue_effect);
     }
 }
 
