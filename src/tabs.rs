@@ -1,4 +1,4 @@
-use oelung::{anyhow, Component, ComponentInterface, Grid};
+use oelung::{anyhow, soft, Component, ComponentInterface, FlexRowBuilder, Grid};
 use smallvec::SmallVec;
 use smol_str::SmolStr;
 
@@ -18,7 +18,21 @@ impl<'a> Tabs<'a> {
 
 impl<'a> ComponentInterface for &'a Tabs<'_> {
     fn render(&self, _grid: Grid) -> Result<Component<'_>, anyhow::Error> {
-        unimplemented!()
+        Ok(soft! {
+            %FlexColumn
+              children => [
+                {
+                    let mut flex_row = FlexRowBuilder::default();
+                    for tab in &self.tabs {
+                        flex_row = flex_row.child(soft! {
+                            %Text &tab.label
+                        });
+                    }
+                    flex_row.build().unwrap()
+                },
+                self.tabs[self.selected_index].component.clone()
+              ]
+        })
     }
 }
 
