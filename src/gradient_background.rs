@@ -34,7 +34,8 @@ impl<'a> ComponentInterface for GradientBackground<'a> {
               children => [
                 %Absolute
                   content => soft! { %&self.gradient }
-                self.content.clone()
+                %Absolute
+                  content => self.content.clone()
               ]
               relative => Relative::NotMoved
         })

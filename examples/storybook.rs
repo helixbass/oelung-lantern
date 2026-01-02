@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use crossterm::event::{Event, EventStream, KeyCode};
 use oelung::{soft, Component, Renderer};
@@ -105,7 +106,7 @@ impl storybook::Component<World> for SnakeSpinner {
 
 impl storybook::ComponentInstance<World> for spinner::SnakeSpinner {
     fn get_component(&self) -> Component<'_> {
-        Component::Component(Box::new(self))
+        Component::Component(Rc::new(self))
     }
 
     fn receive(&mut self, event: &World) {
