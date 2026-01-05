@@ -5,13 +5,19 @@ use smol_str::SmolStr;
 pub struct Tabs<'a> {
     pub tabs: TabsList<'a>,
     pub selected_index: usize,
+    pub flex_grow: Option<f64>,
 }
 
 impl<'a> Tabs<'a> {
-    pub fn new(tabs: impl IntoIterator<Item = Tab<'a>>, selected_index: usize) -> Self {
+    pub fn new(
+        tabs: impl IntoIterator<Item = Tab<'a>>,
+        selected_index: usize,
+        flex_grow: Option<f64>,
+    ) -> Self {
         Self {
             tabs: tabs.into_iter().collect(),
             selected_index,
+            flex_grow,
         }
     }
 }
@@ -34,7 +40,12 @@ impl<'a> ComponentInterface for Tabs<'_> {
                 },
                 self.tabs[self.selected_index].component.clone()
               ]
+              maybe_flex_grow => self.flex_grow
         })
+    }
+
+    fn flex_grow(&self) -> Option<f64> {
+        self.flex_grow
     }
 }
 

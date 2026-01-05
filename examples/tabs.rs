@@ -53,7 +53,8 @@ fn render_screen(renderer: &mut Renderer) -> Result<(), anyhow::Error> {
                     }
                 ),
             ],
-            0
+            0,
+            Some(1.0),
           )
           %Text "(hit q to quit)"
         ]
