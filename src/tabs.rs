@@ -40,7 +40,6 @@ impl<'a> ComponentInterface for Tabs<'_> {
                 },
                 self.tabs[self.selected_index].component.clone()
               ]
-              maybe_flex_grow => self.flex_grow
         })
     }
 
