@@ -12,7 +12,7 @@ mod partial_column;
 mod receive;
 pub mod spinner;
 pub mod storybook;
-mod tabs;
+pub mod tabs;
 pub mod text_input;
 
 pub use proc_macros::generate_sender;
