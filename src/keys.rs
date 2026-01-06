@@ -34,3 +34,22 @@ fn is_key_press_with_modifiers(event: &Event, key: KeyCode, modifiers: KeyModifi
     }
     true
 }
+
+pub fn is_any_simple_char_press(event: &Event) -> Option<char> {
+    let Event::Key(event) = event else {
+        return None;
+    };
+    let KeyCode::Char(ch) = event.code else {
+        return None;
+    };
+    match event.modifiers {
+        KeyModifiers::NONE => {}
+        KeyModifiers::SHIFT => {
+            if !(ch >= 'A' && ch <= 'Z') {
+                return None;
+            }
+        }
+        _ => return None,
+    }
+    Some(ch)
+}

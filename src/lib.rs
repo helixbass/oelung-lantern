@@ -28,7 +28,9 @@ pub use countdown::Countdown;
 pub use error::Error;
 pub use gradient::{Gradient, GradientBuilder};
 pub use gradient_background::GradientBackground;
-pub use keys::{is_ctrl_char_press, is_simple_char_press, is_simple_key_press};
+pub use keys::{
+    is_any_simple_char_press, is_ctrl_char_press, is_simple_char_press, is_simple_key_press,
+};
 pub use loading_message::LoadingMessage;
 pub use partial_column::PartialColumn;
 pub use receive::ReceiveEvent;
