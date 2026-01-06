@@ -2,6 +2,13 @@ use crossterm::event::{Event, KeyCode, KeyEventKind, KeyModifiers};
 
 pub fn is_simple_char_press(event: &Event, ch: char) -> bool {
     is_simple_key_press(event, KeyCode::Char(ch))
+        || matches!(
+            event,
+            Event::Key(key_event) if matches!(
+                key_event.code,
+                KeyCode::Char(ch) if ch >= 'A' && ch <= 'Z'
+            )
+        ) && is_key_press_with_modifiers(event, KeyCode::Char(ch), KeyModifiers::SHIFT)
 }
 
 pub fn is_simple_key_press(event: &Event, key: KeyCode) -> bool {
