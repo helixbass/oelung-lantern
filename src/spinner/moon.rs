@@ -65,11 +65,13 @@ impl ReceiveEvent<Tick> for MoonSpinner {
         &mut self,
         event: &Tick,
         _queue_effect: TQueueEffect,
-    ) {
+    ) -> Result<(), anyhow::Error> {
         if event.uuid != self.uuid {
-            return;
+            return Ok(());
         }
         self.next_step += 1;
+
+        Ok(())
     }
 }
 

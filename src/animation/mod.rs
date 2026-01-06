@@ -3,6 +3,7 @@ use std::time::{Duration, Instant};
 
 use derive_builder::Builder;
 use futures::future::FutureExt;
+use oelung::anyhow;
 use tokio::{task::JoinHandle, time::interval};
 use tracing::instrument;
 use uuid::Uuid;
@@ -122,12 +123,12 @@ impl ReceiveEvent<Tick> for AnimationInstance {
         &mut self,
         tick: &Tick,
         mut queue_effect: TQueueEffect,
-    ) {
+    ) -> Result<(), anyhow::Error> {
         let Self::Running(running) = self else {
-            return;
+            return Ok(());
         };
         if tick.uuid != running.uuid {
-            return;
+            return Ok(());
         }
         if running.is_done() {
             queue_effect({
@@ -143,6 +144,8 @@ impl ReceiveEvent<Tick> for AnimationInstance {
                 repeat: running.repeat,
             };
         }
+
+        Ok(())
     }
 }
 

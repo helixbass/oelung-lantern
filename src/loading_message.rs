@@ -40,7 +40,9 @@ impl ReceiveEvent<snake::Tick> for LoadingMessage {
         &mut self,
         event: &snake::Tick,
         queue_effect: TQueueEffect,
-    ) {
-        self.spinner.receive(event, queue_effect);
+    ) -> Result<(), anyhow::Error> {
+        self.spinner.receive(event, queue_effect)?;
+
+        Ok(())
     }
 }

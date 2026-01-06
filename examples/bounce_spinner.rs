@@ -34,7 +34,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 break;
             }
             World::BounceSpinnerTick(tick) => {
-                spinner.receive(&tick, |future| queued_effects.push(future));
+                spinner.receive(&tick, |future| queued_effects.push(future))?;
                 render_screen(&mut renderer, &spinner)?;
             }
             _ => {}

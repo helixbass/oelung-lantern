@@ -222,13 +222,18 @@ impl ReceiveEvent<animation::Tick> for AnimatedGradient<'_> {
         &mut self,
         tick: &animation::Tick,
         queue_effect: TQueueEffect,
-    ) {
+    ) -> Result<(), anyhow::Error> {
         // `.as_mut().unwrap()` should be a reasonable assertion here
         // because we should only be wired up to receive events for
         // our animation instance if we own it (ie AnimatedGradient can
         // be used in "part of the state" mode or "transient ephemeral
         // rendering" mode)
-        self.animation.as_mut().unwrap().receive(tick, queue_effect);
+        self.animation
+            .as_mut()
+            .unwrap()
+            .receive(tick, queue_effect)?;
+
+        Ok(())
     }
 }
 

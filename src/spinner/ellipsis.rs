@@ -75,11 +75,13 @@ impl ReceiveEvent<Tick> for EllipsisSpinner {
         &mut self,
         event: &Tick,
         _queue_effect: TQueueEffect,
-    ) {
+    ) -> Result<(), anyhow::Error> {
         if event.uuid != self.uuid {
-            return;
+            return Ok(());
         }
         self.next_step += 1;
+
+        Ok(())
     }
 }
 

@@ -29,7 +29,7 @@ async fn main() -> Result<(), anyhow::Error> {
             }
             World::Crossterm(event) => {
                 if let State::Inputting(text_input) = &mut state {
-                    text_input.receive(&event, |future| queued_effects.push(future));
+                    text_input.receive(&event, |future| queued_effects.push(future))?;
                 }
                 render_screen(&mut renderer, &state)?;
             }

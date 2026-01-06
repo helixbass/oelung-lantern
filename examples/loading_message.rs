@@ -39,7 +39,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 break;
             }
             World::SnakeSpinnerTick(tick) => {
-                loading_message.receive(&tick, |future| queued_effects.push(future));
+                loading_message.receive(&tick, |future| queued_effects.push(future))?;
                 render_screen(&mut renderer, &loading_message)?;
             }
             _ => {}

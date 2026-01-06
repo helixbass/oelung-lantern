@@ -42,7 +42,7 @@ impl ReceiveEvent<Event> for TextInput {
         &mut self,
         event: &Event,
         mut queue_effect: TQueueEffect,
-    ) {
+    ) -> Result<(), anyhow::Error> {
         match event {
             Event::Key(key) if matches!(key.code, KeyCode::Char(_)) => {
                 let ch = match key.code {
@@ -63,6 +63,8 @@ impl ReceiveEvent<Event> for TextInput {
             }
             _ => {}
         }
+
+        Ok(())
     }
 }
 

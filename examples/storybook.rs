@@ -11,7 +11,7 @@ use oelung_lantern::{
     generate_sender,
     mpsc::Sender,
     spinner::{self, snake},
-    storybook, ReceiveEvent, Storybook, StorybookBuilder,
+    storybook, Storybook, StorybookBuilder,
 };
 
 #[tokio::main]

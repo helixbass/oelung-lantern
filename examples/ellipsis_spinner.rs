@@ -36,7 +36,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 break;
             }
             World::EllipsisSpinnerTick(tick) => {
-                spinner.receive(&tick, |future| queued_effects.push(future));
+                spinner.receive(&tick, |future| queued_effects.push(future))?;
                 render_screen(&mut renderer, &spinner)?;
             }
             _ => {}

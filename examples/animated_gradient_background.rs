@@ -44,7 +44,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 break;
             }
             World::Animation(animation::Event::Tick(tick)) => {
-                animation.receive(&tick, |future| queued_effects.push(future));
+                animation.receive(&tick, |future| queued_effects.push(future))?;
                 render_screen(&mut renderer, text, &animation)?;
             }
             _ => {}

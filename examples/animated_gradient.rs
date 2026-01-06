@@ -72,7 +72,7 @@ async fn main() -> Result<(), anyhow::Error> {
                 break;
             }
             World::AnimatedGradient(animated_gradient::Event::Tick(tick)) => {
-                gradient.receive(&tick, |future| queued_effects.push(future));
+                gradient.receive(&tick, |future| queued_effects.push(future))?;
                 render_screen(&mut renderer, &gradient)?;
             }
             _ => {}
