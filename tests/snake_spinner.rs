@@ -14,57 +14,57 @@ render_multiple_test! {
     expected_prefix => vec![
         indoc!(
             r#"
-                <color={Color::Red}>⠋</color>
+                <color={Red}>⠋</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠙</color>
+                <color={Red}>⠙</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠹</color>
+                <color={Red}>⠹</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠸</color>
+                <color={Red}>⠸</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠼</color>
+                <color={Red}>⠼</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠴</color>
+                <color={Red}>⠴</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠦</color>
+                <color={Red}>⠦</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠧</color>
+                <color={Red}>⠧</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠇</color>
+                <color={Red}>⠇</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠏</color>
+                <color={Red}>⠏</>
             "#,
         ),
         indoc!(
             r#"
-                <color={Color::Red}>⠋</color>
+                <color={Red}>⠋</>
             "#,
         ),
     ]

@@ -14,6 +14,7 @@ mod receive;
 pub mod spinner;
 pub mod storybook;
 pub mod tabs;
+mod testing;
 pub mod text_input;
 
 pub use proc_macros::{generate_sender, render_multiple_test};
@@ -40,4 +41,5 @@ pub use spinner::{
 };
 pub use storybook::{Storybook, StorybookBuilder};
 pub use tabs::{Tab, Tabs, TabsList};
+pub use testing::assert_expected_prefix;
 pub use text_input::TextInput;
