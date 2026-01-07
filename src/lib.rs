@@ -16,7 +16,7 @@ pub mod storybook;
 pub mod tabs;
 pub mod text_input;
 
-pub use proc_macros::generate_sender;
+pub use proc_macros::{generate_sender, render_multiple_test};
 
 pub use animated_gradient::{AnimatedGradient, AnimatedGradientBuilder};
 pub use animated_gradient_background::AnimatedGradientBackground;
