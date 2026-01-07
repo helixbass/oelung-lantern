@@ -87,7 +87,20 @@ impl ToTokens for Spec {
 
                 let (sender, mut receiver) = ::tokio::sync::mpsc::channel::<World>(100);
 
-                listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
+                ::tokio::spawn({
+                    let sender = CrosstermSender::from(sender.clone());
+                    async move {
+                        use ::oelung_lantern::mpsc::Sender;
+                        sender
+                            .send(::crossterm::event::Event::Key(::crossterm::event::KeyEvent {
+                                code: ::crossterm::event::KeyCode::Char('q'),
+                                modifiers: ::crossterm::event::KeyModifiers::NONE,
+                                kind: ::crossterm::event::KeyEventKind::Press,
+                                state: ::crossterm::event::KeyEventState::NONE,
+                            }))
+                            .await;
+                    }
+                });
 
                 let state_callback = #state;
                 let mut state = (state_callback)(Box::new(TestedSender::from(sender.clone())));
@@ -130,20 +143,6 @@ impl ToTokens for Spec {
 
             ::oelung_lantern::generate_sender!(World, Crossterm, ::crossterm::event::Event);
             ::oelung_lantern::generate_sender!(World, Tested, #send_and_receive);
-
-            fn listen_to_crossterm_events(sender: CrosstermSender) {
-                ::tokio::spawn(async move {
-                    use ::tokio_stream::StreamExt;
-                    use ::oelung_lantern::mpsc::Sender;
-                    let mut event_stream = ::crossterm::event::EventStream::new();
-
-                    while let Some(Ok(event)) = event_stream.next().await {
-                        sender.send(event).await;
-                    }
-
-                    panic!("kill everything")
-                });
-            }
         }
         .to_tokens(tokens)
     }
