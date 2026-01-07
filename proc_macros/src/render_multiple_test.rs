@@ -150,7 +150,7 @@ impl ToTokens for Spec {
                     }
                 }
 
-                ::oelung_lantern::assert_expected_prefix(&memory_backend.borrow(), expected_prefix);
+                ::oelung_lantern::assert_expected_prefix(&memory_backend.borrow(), &expected_prefix);
 
                 Ok(())
             }

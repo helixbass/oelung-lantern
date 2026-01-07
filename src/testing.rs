@@ -3,10 +3,17 @@ use itertools::{EitherOrBoth, Itertools};
 use oelung::{backend::Cell, BackendMemory};
 use squalid::{_d, regex};
 
-pub fn assert_expected_prefix(memory_backend: &BackendMemory, expected_prefix: &[String]) {
+pub fn assert_expected_prefix<TString: AsRef<str>>(
+    memory_backend: &BackendMemory,
+    expected_prefix: &[TString],
+) {
+    let expected_prefix = expected_prefix
+        .into_iter()
+        .map(|expected| expected.as_ref().to_owned())
+        .collect::<Vec<_>>();
     let expected_screen_states = expected_prefix
         .into_iter()
-        .map(|expected_screen| ExpectedScreenState::from(&**expected_screen))
+        .map(|expected_screen| ExpectedScreenState::from(&*expected_screen))
         .collect::<Vec<_>>();
 
     let expected_prefix_len = expected_screen_states.len();
