@@ -100,7 +100,7 @@ impl ToTokens for Spec {
 
                 let expected_prefix = #expected_prefix;
 
-                let (did_render_sender, did_render_receiver) = ::tokio::sync::mpsc::channel::<()>(100);
+                let (did_render_sender, mut did_render_receiver) = ::tokio::sync::mpsc::channel::<()>(100);
 
                 ::tokio::spawn({
                     let sender = CrosstermSender::from(sender.clone());
@@ -129,7 +129,7 @@ impl ToTokens for Spec {
                 let mut state = (state_callback)(Box::new(TestedSender::from(sender.clone())));
 
                 render_screen(&mut renderer, &state)?;
-                did_render_sender.send(()).await;
+                did_render_sender.send(()).await?;
 
                 while let Some(world) = receiver.recv().await {
                     let mut queued_effects: Vec<::std::pin::Pin<Box<dyn Future<Output = ()> + Send + 'static>>> = vec![];
@@ -141,7 +141,7 @@ impl ToTokens for Spec {
                             use ::oelung_lantern::ReceiveEvent;
                             state.receive(&event, |future| queued_effects.push(future))?;
                             render_screen(&mut renderer, &state)?;
-                            did_render_sender.send(()).await;
+                            did_render_sender.send(()).await?;
                         }
                         _ => {}
                     }
