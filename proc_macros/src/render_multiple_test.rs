@@ -3,7 +3,7 @@ use quote::{format_ident, quote, ToTokens};
 use squalid::_d;
 use syn::{
     parse::{Parse, ParseStream, Result},
-    parse_macro_input, Expr, Ident, Path, Token,
+    parse_macro_input, ExprClosure, Ident, Path, Token,
 };
 
 pub fn render_multiple_test(input: TokenStream) -> TokenStream {
@@ -17,7 +17,7 @@ pub fn render_multiple_test(input: TokenStream) -> TokenStream {
 
 struct Spec {
     pub name: Ident,
-    pub state: Expr,
+    pub state: ExprClosure,
     pub state_type: Path,
     pub send_and_receive: Path,
 }
@@ -25,7 +25,7 @@ struct Spec {
 impl Parse for Spec {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut name: Option<Ident> = _d();
-        let mut state: Option<Expr> = _d();
+        let mut state: Option<ExprClosure> = _d();
         let mut state_type: Option<Path> = _d();
         let mut send_and_receive: Option<Path> = _d();
         // while input.peek(Ident) {
@@ -82,7 +82,8 @@ impl ToTokens for Spec {
 
                 listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
-                let mut state = #state;
+                let state_callback = #state;
+                let mut state = (state_callback)(Box::new(TestedSender::from(sender.clone())));
 
                 render_screen(&mut renderer, &state)?;
 
@@ -116,11 +117,11 @@ impl ToTokens for Spec {
             }
 
             enum World {
-                Crossterm(Event),
+                Crossterm(::crossterm::event::Event),
                 Tested(#send_and_receive),
             }
 
-            ::oelung_lantern::generate_sender!(World, Crossterm, Event);
+            ::oelung_lantern::generate_sender!(World, Crossterm, ::crossterm::event::Event);
             ::oelung_lantern::generate_sender!(World, Tested, #send_and_receive);
 
             fn listen_to_crossterm_events(sender: CrosstermSender) {
