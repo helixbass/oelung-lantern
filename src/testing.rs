@@ -75,13 +75,15 @@ fn parse_line(line: &str) -> Vec<StyledChunk> {
     let mut next_pos = 0;
     let mut ret: Vec<StyledChunk> = _d();
     while let Some(index) = line[next_pos..].find('<') {
-        ret.push(StyledChunk {
-            contents: line[next_pos..next_pos + index].to_owned(),
-            style: Style {
-                foreground_color: Color::Reset,
-                background_color: Color::Reset,
-            },
-        });
+        if index > 0 {
+            ret.push(StyledChunk {
+                contents: line[next_pos..next_pos + index].to_owned(),
+                style: Style {
+                    foreground_color: Color::Reset,
+                    background_color: Color::Reset,
+                },
+            });
+        }
         let left_caret_pos = next_pos + index;
         if regex!(r#"^color="#).is_match(&line[left_caret_pos + 1..]) {
             let left_curly_pos = left_caret_pos + 7;
@@ -168,10 +170,6 @@ fn rendered_row_to_styled_chunks(rendered_row: &[Cell]) -> Vec<StyledChunk> {
         {
             current_chunk.push(cell.content);
         } else {
-            ret.push(StyledChunk {
-                contents: current_chunk,
-                style: current_style.unwrap(),
-            });
             current_style = Some(Style {
                 foreground_color: cell.foreground_color,
                 background_color: cell.background_color,
