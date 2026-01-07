@@ -83,9 +83,9 @@ fn parse_line(line: &str) -> Vec<StyledChunk> {
             },
         });
         let left_caret_pos = next_pos + index;
-        if regex!(r#"^color="#).is_match(&line[left_caret_pos..]) {
-            let left_curly_pos = left_caret_pos + 6;
-            let Some(match_) = regex!(r#"^{.+}>"#).find(&line[left_curly_pos..]) else {
+        if regex!(r#"^color="#).is_match(&line[left_caret_pos + 1..]) {
+            let left_curly_pos = left_caret_pos + 7;
+            let Some(match_) = regex!(r#"^\{.+\}>"#).find(&line[left_curly_pos..]) else {
                 panic!("expected tag value");
             };
             let match_len = match_.len();
