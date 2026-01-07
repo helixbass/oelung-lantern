@@ -4,13 +4,13 @@ use crossterm::event::{Event, EventStream, KeyCode};
 use tokio::sync::mpsc::channel;
 use tokio_stream::StreamExt;
 
-use oelung::{soft, Renderer};
+use oelung::{soft, Renderer, RendererBuilder};
 
 use oelung_lantern::{countdown, generate_sender, mpsc::Sender, Countdown};
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let mut renderer = Renderer::try_new()?;
+    let mut renderer = RendererBuilder::default().build()?;
 
     let (sender, mut receiver) = channel::<World>(100);
 

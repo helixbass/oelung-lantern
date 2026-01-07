@@ -10,7 +10,7 @@ use tokio_stream::StreamExt;
 // use tracing_chrome::ChromeLayerBuilder;
 // use tracing_subscriber::prelude::*;
 
-use oelung::{soft, Renderer};
+use oelung::{soft, Renderer, RendererBuilder};
 
 use oelung_lantern::{
     animated_gradient, generate_sender, mpsc::Sender, AnimatedGradient, AnimatedGradientBuilder,
@@ -22,7 +22,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // let (chrome_layer, _guard) = ChromeLayerBuilder::new().build();
     // tracing_subscriber::registry().with(chrome_layer).init();
 
-    let mut renderer = Renderer::try_new()?;
+    let mut renderer = RendererBuilder::default().build()?;
 
     let (sender, mut receiver) = channel::<World>(100);
 

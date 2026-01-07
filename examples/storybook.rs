@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use crossterm::event::{Event, EventStream, KeyCode};
-use oelung::{soft, Component, Renderer};
+use oelung::{soft, Component, Renderer, RendererBuilder};
 use smol_str::{SmolStr, ToSmolStr};
 use tokio::sync::mpsc::{self, channel};
 use tokio_stream::StreamExt;
@@ -16,7 +16,7 @@ use oelung_lantern::{
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    let mut renderer = Renderer::try_new()?;
+    let mut renderer = RendererBuilder::default().build()?;
 
     let (sender, mut receiver) = channel::<World>(100);
 
