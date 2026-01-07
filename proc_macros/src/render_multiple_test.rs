@@ -6,16 +6,6 @@ use syn::{
     parse_macro_input, Expr, Ident, Path, Token,
 };
 
-render_multiple_test! {
-    name => snake_spinner
-    state => SnakeSpinner::new(
-        None,
-        Some(Color::Red),
-        SENDER
-    )
-    receive => snake::Tick
-    send => snake::Tick
-}
 pub fn render_multiple_test(input: TokenStream) -> TokenStream {
     let spec: Spec = parse_macro_input!(input);
 
@@ -28,16 +18,16 @@ pub fn render_multiple_test(input: TokenStream) -> TokenStream {
 struct Spec {
     pub name: Ident,
     pub state: Expr,
-    pub receive: Path,
-    pub send: Path,
+    pub state_type: Path,
+    pub send_and_receive: Path,
 }
 
 impl Parse for Spec {
     fn parse(input: ParseStream) -> Result<Self> {
         let mut name: Option<Ident> = _d();
         let mut state: Option<Expr> = _d();
-        let mut receive: Option<Path> = _d();
-        let mut send: Option<Path> = _d();
+        let mut state_type: Option<Path> = _d();
+        let mut send_and_receive: Option<Path> = _d();
         // while input.peek(Ident) {
         while !input.is_empty() {
             let key = input.parse::<Ident>().unwrap().to_string();
@@ -51,57 +41,100 @@ impl Parse for Spec {
                     assert!(state.is_none(), "Already saw 'state' key");
                     state = Some(input.parse()?);
                 }
-                "receive" => {
-                    assert!(receive.is_none(), "Already saw 'receive' key");
-                    receive = Some(input.parse()?);
+                "state_type" => {
+                    assert!(state_type.is_none(), "Already saw 'state_type' key");
+                    state_type = Some(input.parse()?);
                 }
-                "send" => {
-                    assert!(send.is_none(), "Already saw 'send' key");
-                    send = Some(input.parse()?);
+                "send_and_receive" => {
+                    assert!(
+                        send_and_receive.is_none(),
+                        "Already saw 'send_and_receive' key"
+                    );
+                    send_and_receive = Some(input.parse()?);
                 }
                 key => return Err(input.error(format!("Unexpected key `{key}`"))),
             }
             input.parse::<Option<Token![,]>>()?;
         }
+
         Ok(Self {
             name: name.expect("Expected `name`"),
             state: state.expect("Expected `state`"),
-            receive: receive.expect("Expected `receive`"),
-            send: send.expect("Expected `send`"),
+            state_type: state_type.expect("Expected `state_type`"),
+            send_and_receive: send_and_receive.expect("Expected `send_and_receive`"),
         })
     }
 }
 
 impl ToTokens for Spec {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let struct_name = format_ident!("{}Sender", self.variant_name);
-        let type_ = &self.type_;
-        let enum_name = &self.enum_name;
-        let variant_name = &self.variant_name;
+        let send_and_receive = &self.send_and_receive;
+        let state_type = &self.state_type;
+        let state = &self.state;
+        let test_name = format_ident!("test_{}", self.name);
 
         quote! {
-            #[derive(Clone)]
-            struct #struct_name {
-                pub sender: ::tokio::sync::mpsc::Sender<#enum_name>,
-            }
+            #[tokio::test]
+            async fn #test_name() -> Result<(), ::oelung::anyhow::Error> {
+                let mut renderer = ::oelung::RendererBuilder::default().build()?;
 
-            impl From<::tokio::sync::mpsc::Sender<#enum_name>> for #struct_name {
-                fn from(value: ::tokio::sync::mpsc::Sender<#enum_name>) -> Self {
-                    Self {
-                        sender: value,
+                let (sender, mut receiver) = ::tokio::sync::mpsc::channel::<World>(100);
+
+                listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
+
+                let mut state = #state;
+
+                render_screen(&mut renderer, &state)?;
+
+                while let Some(world) = receiver.recv().await {
+                    let mut queued_effects: Vec<::std::pin::Pin<Box<dyn Future<Output = ()> + Send + 'static>>> = vec![];
+                    match world {
+                        World::Crossterm(::crossterm::event::Event::Key(key)) if key.code == ::crossterm::event::KeyCode::Char('q') => {
+                            break;
+                        }
+                        World::Tested(event) => {
+                            use ::oelung_lantern::ReceiveEvent;
+                            state.receive(&event, |future| queued_effects.push(future))?;
+                            render_screen(&mut renderer, &state)?;
+                        }
+                        _ => {}
+                    }
+                    for effect in queued_effects {
+                        ::tokio::spawn(effect);
                     }
                 }
+
+                Ok(())
             }
 
-            #[::async_trait::async_trait]
-            impl ::oelung_lantern::mpsc::Sender<#type_> for #struct_name {
-                async fn send(&self, value: #type_) {
-                    self.sender.send(#enum_name::#variant_name(value)).await.unwrap();
-                }
+            fn render_screen(renderer: &mut ::oelung::Renderer, state: &#state_type) -> Result<(), anyhow::Error> {
+                renderer.render(::oelung::soft! {
+                    %state
+                })?;
 
-                fn box_clone(&self) -> ::std::boxed::Box<dyn ::oelung_lantern::mpsc::Sender<#type_>> {
-                    Box::new(self.clone())
-                }
+                Ok(())
+            }
+
+            enum World {
+                Crossterm(Event),
+                Tested(#send_and_receive),
+            }
+
+            ::oelung_lantern::generate_sender!(World, Crossterm, Event);
+            ::oelung_lantern::generate_sender!(World, Tested, #send_and_receive);
+
+            fn listen_to_crossterm_events(sender: CrosstermSender) {
+                ::tokio::spawn(async move {
+                    use ::tokio_stream::StreamExt;
+                    use ::oelung_lantern::mpsc::Sender;
+                    let mut event_stream = ::crossterm::event::EventStream::new();
+
+                    while let Some(Ok(event)) = event_stream.next().await {
+                        sender.send(event).await;
+                    }
+
+                    panic!("kill everything")
+                });
             }
         }
         .to_tokens(tokens)
