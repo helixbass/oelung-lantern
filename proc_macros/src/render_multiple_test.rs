@@ -76,7 +76,14 @@ impl ToTokens for Spec {
         quote! {
             #[tokio::test]
             async fn #test_name() -> Result<(), ::oelung::anyhow::Error> {
-                let mut renderer = ::oelung::RendererBuilder::default().build()?;
+                let memory_backend = ::std::rc::Rc::new(::std::cell::RefCell::new(::oelung::BackendMemory::new(::oelung::Size {
+                    height: 26,
+                    width: 80,
+                })));
+
+                let mut renderer = ::oelung::RendererBuilder::default()
+                    .backend(memory_backend.clone())
+                    .build()?;
 
                 let (sender, mut receiver) = ::tokio::sync::mpsc::channel::<World>(100);
 
