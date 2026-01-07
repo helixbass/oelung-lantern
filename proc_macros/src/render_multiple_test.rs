@@ -3,7 +3,7 @@ use quote::{format_ident, quote, ToTokens};
 use squalid::_d;
 use syn::{
     parse::{Parse, ParseStream, Result},
-    parse_macro_input, ExprClosure, Ident, Path, Token,
+    parse_macro_input, Expr, ExprClosure, Ident, Path, Token,
 };
 
 pub fn render_multiple_test(input: TokenStream) -> TokenStream {
@@ -20,6 +20,7 @@ struct Spec {
     pub state: ExprClosure,
     pub state_type: Path,
     pub send_and_receive: Path,
+    pub expected_prefix: Expr,
 }
 
 impl Parse for Spec {
@@ -28,7 +29,8 @@ impl Parse for Spec {
         let mut state: Option<ExprClosure> = _d();
         let mut state_type: Option<Path> = _d();
         let mut send_and_receive: Option<Path> = _d();
-        // while input.peek(Ident) {
+        let mut expected_prefix: Option<Expr> = _d();
+
         while !input.is_empty() {
             let key = input.parse::<Ident>().unwrap().to_string();
             input.parse::<Token![=>]>()?;
@@ -52,6 +54,13 @@ impl Parse for Spec {
                     );
                     send_and_receive = Some(input.parse()?);
                 }
+                "expected_prefix" => {
+                    assert!(
+                        expected_prefix.is_none(),
+                        "Already saw 'expected_prefix' key"
+                    );
+                    expected_prefix = Some(input.parse()?);
+                }
                 key => return Err(input.error(format!("Unexpected key `{key}`"))),
             }
             input.parse::<Option<Token![,]>>()?;
@@ -62,6 +71,7 @@ impl Parse for Spec {
             state: state.expect("Expected `state`"),
             state_type: state_type.expect("Expected `state_type`"),
             send_and_receive: send_and_receive.expect("Expected `send_and_receive`"),
+            expected_prefix: expected_prefix.expect("Expected `expected_prefix`"),
         })
     }
 }
@@ -72,6 +82,7 @@ impl ToTokens for Spec {
         let state_type = &self.state_type;
         let state = &self.state;
         let test_name = format_ident!("test_{}", self.name);
+        let expected_prefix = &self.expected_prefix;
 
         quote! {
             #[tokio::test]
@@ -87,10 +98,22 @@ impl ToTokens for Spec {
 
                 let (sender, mut receiver) = ::tokio::sync::mpsc::channel::<World>(100);
 
+                let expected_prefix = #expected_prefix;
+
+                let (did_render_sender, did_render_receiver) = ::tokio::sync::mpsc::channel::<()>(100);
+
                 ::tokio::spawn({
                     let sender = CrosstermSender::from(sender.clone());
+                    let expected_prefix_len = expected_prefix.len();
                     async move {
                         use ::oelung_lantern::mpsc::Sender;
+                        let mut num_renders = 0;
+                        while let Some(()) = did_render_receiver.recv().await {
+                            num_renders += 1;
+                            if num_renders >= expected_prefix_len {
+                                break;
+                            }
+                        }
                         sender
                             .send(::crossterm::event::Event::Key(::crossterm::event::KeyEvent {
                                 code: ::crossterm::event::KeyCode::Char('q'),
@@ -106,6 +129,7 @@ impl ToTokens for Spec {
                 let mut state = (state_callback)(Box::new(TestedSender::from(sender.clone())));
 
                 render_screen(&mut renderer, &state)?;
+                did_render_sender.send(()).await;
 
                 while let Some(world) = receiver.recv().await {
                     let mut queued_effects: Vec<::std::pin::Pin<Box<dyn Future<Output = ()> + Send + 'static>>> = vec![];
@@ -117,6 +141,7 @@ impl ToTokens for Spec {
                             use ::oelung_lantern::ReceiveEvent;
                             state.receive(&event, |future| queued_effects.push(future))?;
                             render_screen(&mut renderer, &state)?;
+                            did_render_sender.send(()).await;
                         }
                         _ => {}
                     }
@@ -124,6 +149,8 @@ impl ToTokens for Spec {
                         ::tokio::spawn(effect);
                     }
                 }
+
+                ::oelung_lantern::assert_expected_screen_contents(&memory_backend.borrow(), expected_prefix);
 
                 Ok(())
             }
