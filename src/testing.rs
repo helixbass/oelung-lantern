@@ -60,15 +60,20 @@ impl From<&str> for ExpectedScreenState {
         strip_trailing_newline(value)
             .split("\n")
             .map(parse_line)
+            .enumerate()
             .fold(
                 (_d(), None),
-                |mut accum: (Vec<Vec<StyledChunk>>, Option<Position>), (line_chunks, cursor)| {
+                |mut accum: (Vec<Vec<StyledChunk>>, Option<Position>),
+                 (line_num, (line_chunks, cursor))| {
                     accum.0.push(line_chunks);
                     if let Some(cursor) = cursor {
                         if accum.1.is_some() {
                             panic!("Rendered more than one cursor");
                         }
-                        accum.1 = Some(cursor);
+                        accum.1 = Some(Position {
+                            row: u16::try_from(line_num).unwrap(),
+                            column: cursor,
+                        });
                     }
                     accum
                 },
@@ -176,23 +181,38 @@ fn parse_line(line: &str) -> (Vec<StyledChunk>, Option<RowOrColumnNumber>) {
             }
             (LinePiece::CursorTag, CurrentState::Default) => {
                 assert!(cursor_position.is_none());
-                cursor_position = Some(ret.iter().map(|chunk| chunk.contents.len()).sum());
+                cursor_position = Some(
+                    u16::try_from(ret.iter().map(|chunk| chunk.contents.len()).sum::<usize>())
+                        .unwrap(),
+                );
+                current_state = CurrentState::Default;
             }
             (LinePiece::CursorTag, CurrentState::SawText(text)) => {
                 assert!(cursor_position.is_none());
-                cursor_position =
-                    Some(ret.iter().map(|chunk| chunk.contents.len()).sum() + text.len());
+                cursor_position = Some(
+                    u16::try_from(
+                        ret.iter().map(|chunk| chunk.contents.len()).sum::<usize>() + text.len(),
+                    )
+                    .unwrap(),
+                );
                 current_state = CurrentState::SawTextAndJustSawCursor(text);
             }
             (LinePiece::CursorTag, CurrentState::InsideStyleTag(style)) => {
                 assert!(cursor_position.is_none());
-                cursor_position = Some(ret.iter().map(|chunk| chunk.contents.len()).sum());
+                cursor_position = Some(
+                    u16::try_from(ret.iter().map(|chunk| chunk.contents.len()).sum::<usize>())
+                        .unwrap(),
+                );
                 current_state = CurrentState::InsideStyleTag(style);
             }
             (LinePiece::CursorTag, CurrentState::SawTextInsideStyleTag(text, style)) => {
                 assert!(cursor_position.is_none());
-                cursor_position =
-                    Some(ret.iter().map(|chunk| chunk.contents.len()).sum() + text.len());
+                cursor_position = Some(
+                    u16::try_from(
+                        ret.iter().map(|chunk| chunk.contents.len()).sum::<usize>() + text.len(),
+                    )
+                    .unwrap(),
+                );
                 current_state = CurrentState::SawTextInsideStyleTagAndJustSawCursor(text, style);
             }
             (LinePiece::StyleOpenTag(style), CurrentState::Default) => {
@@ -225,7 +245,7 @@ fn parse_line(line: &str) -> (Vec<StyledChunk>, Option<RowOrColumnNumber>) {
     }
     match current_state {
         CurrentState::Default => {}
-        CurrentState::SawText(text) => {
+        CurrentState::SawText(text) | CurrentState::SawTextAndJustSawCursor(text) => {
             ret.push(StyledChunk {
                 contents: text,
                 style: Style {
@@ -234,7 +254,9 @@ fn parse_line(line: &str) -> (Vec<StyledChunk>, Option<RowOrColumnNumber>) {
                 },
             });
         }
-        CurrentState::InsideStyleTag(_) | CurrentState::SawTextInsideStyleTag(_, _) => {
+        CurrentState::InsideStyleTag(_)
+        | CurrentState::SawTextInsideStyleTag(_, _)
+        | CurrentState::SawTextInsideStyleTagAndJustSawCursor(_, _) => {
             panic!("unclosed style tag")
         }
     }
