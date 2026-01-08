@@ -18,10 +18,16 @@ pub fn assert_expected_prefix<TString: AsRef<str>>(
         .zip_longest(memory_backend.rendered_grids.iter())
         .take(expected_prefix_len)
         .for_each(|either_or_both| {
-            let EitherOrBoth::Both(expected_prefix, rendered_grid) = either_or_both else {
+            let EitherOrBoth::Both(expected_prefix, (rendered_grid, rendered_cursor_position)) =
+                either_or_both
+            else {
                 panic!("Should have expected prefix and rendered grid");
             };
-            assert_expected_screen_contents_rendered_grid(rendered_grid, &expected_prefix);
+            assert_expected_screen_contents_rendered_grid(
+                rendered_grid,
+                *rendered_cursor_position,
+                &expected_prefix,
+            );
         });
 }
 
@@ -29,11 +35,16 @@ pub fn assert_expected_screen_contents(
     memory_backend: &BackendMemory,
     expected_screen_contents: &str,
 ) {
-    assert_expected_screen_contents_rendered_grid(&memory_backend.grid, expected_screen_contents)
+    assert_expected_screen_contents_rendered_grid(
+        &memory_backend.grid,
+        memory_backend.current_cursor_position(),
+        expected_screen_contents,
+    )
 }
 
 pub fn assert_expected_screen_contents_rendered_grid(
     rendered_grid: &[Vec<Cell>],
+    cursor_position: Option<Position>,
     expected_screen_contents: &str,
 ) {
     let expected_screen_state: ExpectedScreenState = expected_screen_contents.into();
@@ -41,6 +52,7 @@ pub fn assert_expected_screen_contents_rendered_grid(
         rendered_grid_to_styled_chunks(rendered_grid),
         expected_screen_state.contents
     );
+    assert_eq!(cursor_position, expected_screen_state.cursor_position,);
 }
 
 pub struct ExpectedScreenState {
