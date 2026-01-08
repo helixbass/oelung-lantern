@@ -36,9 +36,16 @@ pub fn assert_expected_screen_contents(
     memory_backend: &BackendMemory,
     expected_screen_contents: &str,
 ) {
+    assert_expected_screen_contents_rendered_grid(&memory_backend.grid, expected_screen_contents)
+}
+
+pub fn assert_expected_screen_contents_rendered_grid(
+    rendered_grid: &[Vec<Cell>],
+    expected_screen_contents: &str,
+) {
     let expected_screen_state: ExpectedScreenState = expected_screen_contents.into();
     assert_eq!(
-        rendered_grid_to_styled_chunks(&memory_backend.grid),
+        rendered_grid_to_styled_chunks(rendered_grid),
         expected_screen_state.contents
     );
 }
@@ -124,7 +131,7 @@ fn parse_line(line: &str) -> Vec<StyledChunk> {
 fn parse_color(text: &str) -> Color {
     match text {
         "Red" => Color::Red,
-        _ => match regex!(r#"^Rgb\((\d+),(\d+),(\d+)\)$"#).captures(text) {
+        _ => match regex!(r#"^Rgb\((\d+),\s*(\d+),\s*(\d+)\)$"#).captures(text) {
             Some(captures) => Color::Rgb {
                 r: captures[1].parse().unwrap(),
                 g: captures[2].parse().unwrap(),
