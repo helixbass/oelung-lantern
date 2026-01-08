@@ -1,7 +1,7 @@
 use crossterm::style::Color;
 use itertools::{EitherOrBoth, Itertools};
-use oelung::{backend::Cell, BackendMemory};
-use squalid::{_d, regex};
+use oelung::{backend::Cell, BackendMemory, Position, RowOrColumnNumber};
+use squalid::{_d, regex, EverythingExt};
 
 pub fn assert_expected_prefix<TString: AsRef<str>>(
     memory_backend: &BackendMemory,
@@ -52,16 +52,31 @@ pub fn assert_expected_screen_contents_rendered_grid(
 
 pub struct ExpectedScreenState {
     pub contents: Vec<Vec<StyledChunk>>,
+    pub cursor_position: Option<Position>,
 }
 
 impl From<&str> for ExpectedScreenState {
     fn from(value: &str) -> Self {
-        Self {
-            contents: strip_trailing_newline(value)
-                .split("\n")
-                .map(parse_line)
-                .collect(),
-        }
+        strip_trailing_newline(value)
+            .split("\n")
+            .map(parse_line)
+            .fold(
+                (_d(), None),
+                |mut accum: (Vec<Vec<StyledChunk>>, Option<Position>), (line_chunks, cursor)| {
+                    accum.0.push(line_chunks);
+                    if let Some(cursor) = cursor {
+                        if accum.1.is_some() {
+                            panic!("Rendered more than one cursor");
+                        }
+                        accum.1 = Some(cursor);
+                    }
+                    accum
+                },
+            )
+            .thrush(|(contents, cursor_position)| Self {
+                contents,
+                cursor_position,
+            })
     }
 }
 
@@ -73,21 +88,15 @@ pub fn strip_trailing_newline(file_contents: &str) -> &str {
     }
 }
 
-fn parse_line(line: &str) -> Vec<StyledChunk> {
+fn parse_line_to_pieces(line: &str) -> Vec<LinePiece> {
     if line.is_empty() {
         return _d();
     }
     let mut next_pos = 0;
-    let mut ret: Vec<StyledChunk> = _d();
+    let mut ret: Vec<LinePiece> = _d();
     while let Some(index) = line[next_pos..].find('<') {
         if index > 0 {
-            ret.push(StyledChunk {
-                contents: line[next_pos..next_pos + index].to_owned(),
-                style: Style {
-                    foreground_color: Color::Reset,
-                    background_color: Color::Reset,
-                },
-            });
+            ret.push(LinePiece::Text(line[next_pos..next_pos + index].to_owned()));
         }
         let left_caret_pos = next_pos + index;
         if regex!(r#"^color="#).is_match(&line[left_caret_pos + 1..]) {
@@ -99,33 +108,137 @@ fn parse_line(line: &str) -> Vec<StyledChunk> {
             let color_len = match_len - 3;
             let color = parse_color(&line[left_curly_pos + 1..left_curly_pos + 1 + color_len]);
             let one_after_right_caret_pos = left_curly_pos + match_len;
+            ret.push(LinePiece::StyleOpenTag(Style {
+                foreground_color: color,
+                background_color: Color::Reset,
+            }));
             let Some(match_) = regex!(r#"^.+</>"#).find(&line[one_after_right_caret_pos..]) else {
                 panic!("expected closing tag");
             };
             let match_len = match_.len();
             let close_left_caret_pos = one_after_right_caret_pos + (match_len - 3);
-            ret.push(StyledChunk {
-                contents: line[one_after_right_caret_pos..close_left_caret_pos].to_owned(),
-                style: Style {
-                    foreground_color: color,
-                    background_color: Color::Reset,
-                },
-            });
+            ret.push(LinePiece::Text(
+                line[one_after_right_caret_pos..close_left_caret_pos].to_owned(),
+            ));
+            ret.push(LinePiece::StyleCloseTag);
             next_pos = one_after_right_caret_pos + match_len;
+        } else if regex!(r#"^cursor/>"#).is_match(&line[left_caret_pos + 1..]) {
+            ret.push(LinePiece::CursorTag);
+            next_pos = left_caret_pos + 9;
         } else {
             panic!("expected style tag");
         }
     }
     if next_pos < line.len() {
-        ret.push(StyledChunk {
-            contents: line[next_pos..].to_owned(),
-            style: Style {
-                foreground_color: Color::Reset,
-                background_color: Color::Reset,
-            },
-        });
+        ret.push(LinePiece::Text(line[next_pos..].to_owned()));
     }
     ret
+}
+
+enum LinePiece {
+    Text(String),
+    CursorTag,
+    StyleOpenTag(Style),
+    StyleCloseTag,
+}
+
+fn parse_line(line: &str) -> (Vec<StyledChunk>, Option<RowOrColumnNumber>) {
+    #[derive(Default)]
+    enum CurrentState {
+        #[default]
+        Default,
+        SawText(String),
+        SawTextAndJustSawCursor(String),
+        InsideStyleTag(Style),
+        SawTextInsideStyleTag(String, Style),
+        SawTextInsideStyleTagAndJustSawCursor(String, Style),
+    }
+    let mut ret: Vec<StyledChunk> = _d();
+    let mut cursor_position: Option<RowOrColumnNumber> = _d();
+    let mut current_state: CurrentState = _d();
+    for line_piece in parse_line_to_pieces(line) {
+        match (line_piece, current_state) {
+            (LinePiece::Text(text), CurrentState::Default) => {
+                current_state = CurrentState::SawText(text);
+            }
+            (LinePiece::Text(more_text), CurrentState::SawTextAndJustSawCursor(text)) => {
+                current_state = CurrentState::SawText(format!("{text}{more_text}"));
+            }
+            (LinePiece::Text(text), CurrentState::InsideStyleTag(style)) => {
+                current_state = CurrentState::SawTextInsideStyleTag(text, style);
+            }
+            (
+                LinePiece::Text(more_text),
+                CurrentState::SawTextInsideStyleTagAndJustSawCursor(text, style),
+            ) => {
+                current_state =
+                    CurrentState::SawTextInsideStyleTag(format!("{text}{more_text}"), style);
+            }
+            (LinePiece::CursorTag, CurrentState::Default) => {
+                assert!(cursor_position.is_none());
+                cursor_position = Some(ret.iter().map(|chunk| chunk.contents.len()).sum());
+            }
+            (LinePiece::CursorTag, CurrentState::SawText(text)) => {
+                assert!(cursor_position.is_none());
+                cursor_position =
+                    Some(ret.iter().map(|chunk| chunk.contents.len()).sum() + text.len());
+                current_state = CurrentState::SawTextAndJustSawCursor(text);
+            }
+            (LinePiece::CursorTag, CurrentState::InsideStyleTag(style)) => {
+                assert!(cursor_position.is_none());
+                cursor_position = Some(ret.iter().map(|chunk| chunk.contents.len()).sum());
+                current_state = CurrentState::InsideStyleTag(style);
+            }
+            (LinePiece::CursorTag, CurrentState::SawTextInsideStyleTag(text, style)) => {
+                assert!(cursor_position.is_none());
+                cursor_position =
+                    Some(ret.iter().map(|chunk| chunk.contents.len()).sum() + text.len());
+                current_state = CurrentState::SawTextInsideStyleTagAndJustSawCursor(text, style);
+            }
+            (LinePiece::StyleOpenTag(style), CurrentState::Default) => {
+                current_state = CurrentState::InsideStyleTag(style);
+            }
+            (LinePiece::StyleOpenTag(style), CurrentState::SawText(text))
+            | (LinePiece::StyleOpenTag(style), CurrentState::SawTextAndJustSawCursor(text)) => {
+                ret.push(StyledChunk {
+                    contents: text,
+                    style: Style {
+                        foreground_color: Color::Reset,
+                        background_color: Color::Reset,
+                    },
+                });
+                current_state = CurrentState::InsideStyleTag(style);
+            }
+            (LinePiece::StyleCloseTag, CurrentState::SawTextInsideStyleTag(text, style))
+            | (
+                LinePiece::StyleCloseTag,
+                CurrentState::SawTextInsideStyleTagAndJustSawCursor(text, style),
+            ) => {
+                ret.push(StyledChunk {
+                    contents: text,
+                    style,
+                });
+                current_state = CurrentState::Default;
+            }
+            _ => panic!("invalid line state"),
+        }
+    }
+    match current_state {
+        CurrentState::Default => {}
+        CurrentState::SawText(text) => {
+            ret.push(StyledChunk {
+                contents: text,
+                style: Style {
+                    foreground_color: Color::Reset,
+                    background_color: Color::Reset,
+                },
+            });
+        }
+        CurrentState::InsideStyleTag(_) | CurrentState::SawTextInsideStyleTag(_, _) => {
+            panic!("unclosed style tag")
+        }
+    }
+    (ret, cursor_position)
 }
 
 fn parse_color(text: &str) -> Color {
