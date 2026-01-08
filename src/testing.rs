@@ -11,24 +11,17 @@ pub fn assert_expected_prefix<TString: AsRef<str>>(
         .into_iter()
         .map(|expected| expected.as_ref().to_owned())
         .collect::<Vec<_>>();
-    let expected_screen_states = expected_prefix
-        .into_iter()
-        .map(|expected_screen| ExpectedScreenState::from(&*expected_screen))
-        .collect::<Vec<_>>();
 
-    let expected_prefix_len = expected_screen_states.len();
-    expected_screen_states
+    let expected_prefix_len = expected_prefix.len();
+    expected_prefix
         .into_iter()
         .zip_longest(memory_backend.rendered_grids.iter())
         .take(expected_prefix_len)
         .for_each(|either_or_both| {
-            let EitherOrBoth::Both(expected_screen_state, rendered_grid) = either_or_both else {
-                panic!("Should have expected screen state and rendered grid");
+            let EitherOrBoth::Both(expected_prefix, rendered_grid) = either_or_both else {
+                panic!("Should have expected prefix and rendered grid");
             };
-            assert_eq!(
-                rendered_grid_to_styled_chunks(rendered_grid),
-                expected_screen_state.contents
-            );
+            assert_expected_screen_contents_rendered_grid(rendered_grid, &expected_prefix);
         });
 }
 
