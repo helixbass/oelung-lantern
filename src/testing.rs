@@ -26,23 +26,21 @@ pub fn assert_expected_prefix<TString: AsRef<str>>(
                 panic!("Should have expected screen state and rendered grid");
             };
             assert_eq!(
-                {
-                    let including_trailing_rows = rendered_grid
-                        .into_iter()
-                        .map(|row| rendered_row_to_styled_chunks(row))
-                        .collect::<Vec<_>>();
-                    including_trailing_rows
-                        .into_iter()
-                        .rev()
-                        .skip_while(|row| row.is_empty())
-                        .collect::<Vec<_>>()
-                        .into_iter()
-                        .rev()
-                        .collect::<Vec<_>>()
-                },
+                rendered_grid_to_styled_chunks(rendered_grid),
                 expected_screen_state.contents
             );
         });
+}
+
+pub fn assert_expected_screen_contents(
+    memory_backend: &BackendMemory,
+    expected_screen_contents: &str,
+) {
+    let expected_screen_state: ExpectedScreenState = expected_screen_contents.into();
+    assert_eq!(
+        rendered_grid_to_styled_chunks(&memory_backend.grid),
+        expected_screen_state.contents
+    );
 }
 
 pub struct ExpectedScreenState {
@@ -92,10 +90,7 @@ fn parse_line(line: &str) -> Vec<StyledChunk> {
             };
             let match_len = match_.len();
             let color_len = match_len - 3;
-            let color = match &line[left_curly_pos + 1..left_curly_pos + 1 + color_len] {
-                "Red" => Color::Red,
-                _ => unimplemented!(),
-            };
+            let color = parse_color(&line[left_curly_pos + 1..left_curly_pos + 1 + color_len]);
             let one_after_right_caret_pos = left_curly_pos + match_len;
             let Some(match_) = regex!(r#"^.+</>"#).find(&line[one_after_right_caret_pos..]) else {
                 panic!("expected closing tag");
@@ -124,6 +119,20 @@ fn parse_line(line: &str) -> Vec<StyledChunk> {
         });
     }
     ret
+}
+
+fn parse_color(text: &str) -> Color {
+    match text {
+        "Red" => Color::Red,
+        _ => match regex!(r#"^Rgb\((\d+),(\d+),(\d+)\)$"#).captures(text) {
+            Some(captures) => Color::Rgb {
+                r: captures[1].parse().unwrap(),
+                g: captures[2].parse().unwrap(),
+                b: captures[3].parse().unwrap(),
+            },
+            None => unimplemented!(),
+        },
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -184,4 +193,19 @@ fn rendered_row_to_styled_chunks(rendered_row: &[Cell]) -> Vec<StyledChunk> {
         });
     }
     ret
+}
+
+fn rendered_grid_to_styled_chunks(rendered_grid: &[Vec<Cell>]) -> Vec<Vec<StyledChunk>> {
+    let including_trailing_rows = rendered_grid
+        .into_iter()
+        .map(|row| rendered_row_to_styled_chunks(row))
+        .collect::<Vec<_>>();
+    including_trailing_rows
+        .into_iter()
+        .rev()
+        .skip_while(|row| row.is_empty())
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect()
 }

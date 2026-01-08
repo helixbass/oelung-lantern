@@ -41,5 +41,5 @@ pub use spinner::{
 };
 pub use storybook::{Storybook, StorybookBuilder};
 pub use tabs::{Tab, Tabs, TabsList};
-pub use testing::assert_expected_prefix;
+pub use testing::{assert_expected_prefix, assert_expected_screen_contents};
 pub use text_input::TextInput;
