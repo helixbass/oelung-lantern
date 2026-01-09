@@ -12,7 +12,7 @@ use oelung_lantern::{
     generate_sender,
     mpsc::Sender,
     spinner::{self, snake},
-    storybook, Storybook, StorybookBuilder,
+    storybook, ReceiveEvent, Storybook, StorybookBuilder,
 };
 
 #[tokio::main]
@@ -37,10 +37,9 @@ async fn main() -> Result<(), anyhow::Error> {
                 break;
             }
             event => {
-                storybook.receive(&tick, |future| queued_effects.push(future))?;
-                render_screen(&mut renderer, &spinner)?;
+                storybook.receive(&event, |future| queued_effects.push(future))?;
+                render_screen(&mut renderer, &storybook)?;
             }
-            _ => panic!("unexpected event"),
         }
         for effect in queued_effects {
             tokio::spawn(effect);
@@ -118,13 +117,17 @@ impl storybook::ComponentInstance<World> for spinner::SnakeSpinner {
         Component::Component(Rc::new(self))
     }
 
-    fn receive(&mut self, event: &World) {
-        match event {
+    fn receive<'a>(
+        &mut self,
+        event: &World,
+        mut queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
+    ) -> Result<(), anyhow::Error> {
+        Ok(match event {
             World::SnakeSpinnerTick(tick) => {
-                ReceiveEvent::<snake::Tick>::receive(self, tick, |_| unimplemented!());
+                ReceiveEvent::<snake::Tick>::receive(self, tick, &mut queue_effect)?;
             }
             _ => {}
-        }
+        })
     }
 }
 
