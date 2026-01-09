@@ -53,3 +53,7 @@ pub fn is_any_simple_char_press(event: &Event) -> Option<char> {
     }
     Some(ch)
 }
+
+pub fn is_simple_digit_press(event: &Event) -> Option<char> {
+    is_any_simple_char_press(event).filter(|ch| *ch >= '0' && *ch <= '9')
+}
