@@ -55,7 +55,11 @@ impl<TWorld> ReceiveEvent<TWorld> for Storybook<TWorld> {
         event: &TWorld,
         queue_effect: TQueueEffect,
     ) -> Result<(), anyhow::Error> {
-        unimplemented!()
+        if let Some(currently_selected_component) = self.currently_selected_component.as_mut() {
+            currently_selected_component.receive(event, Box::new(queue_effect))?;
+        }
+
+        Ok(())
     }
 }
 
@@ -113,9 +117,9 @@ pub trait Component<TWorld> {
 
 pub trait ComponentInstance<TWorld> {
     fn get_component(&self) -> oelung::Component<'_>;
-    fn receive(
+    fn receive<'a>(
         &mut self,
         event: &TWorld,
-        queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>,
+        queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
     ) -> Result<(), anyhow::Error>;
 }
