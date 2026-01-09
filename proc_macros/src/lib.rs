@@ -9,6 +9,16 @@ pub fn generate_sender(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
+pub fn generate_full_sender(input: TokenStream) -> TokenStream {
+    generate_sender::generate_full_sender(input)
+}
+
+#[proc_macro]
+pub fn generate_sender_from_sender(input: TokenStream) -> TokenStream {
+    generate_sender::generate_sender_from_sender(input)
+}
+
+#[proc_macro]
 pub fn render_multiple_test(input: TokenStream) -> TokenStream {
     render_multiple_test::render_multiple_test(input)
 }

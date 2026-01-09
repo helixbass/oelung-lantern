@@ -1,15 +1,19 @@
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::rc::Rc;
+use std::time::Duration;
 
-use crossterm::event::{Event, EventStream, KeyCode};
+use crossterm::{
+    event::{Event, EventStream, KeyCode},
+    style::Color,
+};
 use oelung::{soft, Component, Renderer, RendererBuilder};
 use smol_str::{SmolStr, ToSmolStr};
-use tokio::sync::mpsc::{self, channel};
+use tokio::sync::mpsc::channel;
 use tokio_stream::StreamExt;
 
 use oelung_lantern::{
-    generate_sender,
+    generate_full_sender, generate_sender, generate_sender_from_sender,
     mpsc::Sender,
     spinner::{self, snake},
     storybook, ReceiveEvent, Storybook, StorybookBuilder,
@@ -25,6 +29,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut storybook = StorybookBuilder::default()
         .components(vec![Box::new(SnakeSpinner::new())])
+        .sender(Box::new(WorldSender::from(sender.clone())))
         .build()
         .unwrap();
 
@@ -89,24 +94,32 @@ impl storybook::Component<World> for SnakeSpinner {
         "Snake spinner".to_smolstr()
     }
 
-    fn inputs(&self) -> Vec<storybook::Input> {
+    fn inputs(&self) -> Vec<Rc<storybook::Input>> {
         vec![
-            storybook::Input::new("period", storybook::InputType::Duration, true),
-            storybook::Input::new("color", storybook::InputType::Color, true),
+            Rc::new(storybook::Input::new(
+                "period",
+                storybook::InputType::Duration,
+                storybook::InputValue::Duration(Duration::from_millis(1000)),
+            )),
+            Rc::new(storybook::Input::new(
+                "color",
+                storybook::InputType::Color,
+                storybook::InputValue::Color(Color::Reset),
+            )),
         ]
     }
 
     fn get_component(
         &self,
-        inputs: &HashMap<SmolStr, Option<storybook::InputValue>>,
-        sender: mpsc::Sender<World>,
+        inputs: &HashMap<SmolStr, storybook::InputValue>,
+        sender: Box<dyn Sender<World>>,
     ) -> Box<dyn storybook::ComponentInstance<World>> {
-        let period = inputs["period"].as_ref().map(|input| input.as_duration());
-        let color = inputs["color"].as_ref().map(|input| input.as_color());
+        let period = inputs["period"].as_duration();
+        let color = inputs["color"].as_color();
 
         Box::new(spinner::SnakeSpinner::new(
-            period.cloned(),
-            color.cloned(),
+            Some(period.clone()),
+            Some(color.clone()),
             Box::new(SnakeSpinnerTickSender::from(sender)),
         ))
     }
@@ -137,4 +150,5 @@ enum World {
 }
 
 generate_sender!(World, Crossterm, Event);
-generate_sender!(World, SnakeSpinnerTick, snake::Tick);
+generate_sender_from_sender!(World, SnakeSpinnerTick, snake::Tick);
+generate_full_sender!(World);

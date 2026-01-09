@@ -17,7 +17,9 @@ pub mod tabs;
 mod testing;
 pub mod text_input;
 
-pub use proc_macros::{generate_sender, render_multiple_test};
+pub use proc_macros::{
+    generate_full_sender, generate_sender, generate_sender_from_sender, render_multiple_test,
+};
 
 pub use animated_gradient::{AnimatedGradient, AnimatedGradientBuilder};
 pub use animated_gradient_background::AnimatedGradientBackground;
