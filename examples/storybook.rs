@@ -32,6 +32,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .sender(Box::new(WorldSender::from(sender.clone())))
         .build()
         .unwrap();
+    storybook.select_component(0);
 
     render_screen(&mut renderer, &storybook)?;
 

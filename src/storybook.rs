@@ -4,7 +4,7 @@ use std::rc::Rc;
 use std::time::Duration;
 
 use crossterm::style::Color;
-use oelung::{anyhow, ComponentInterface, Grid};
+use oelung::{anyhow, soft, ComponentInterface, Grid};
 use smol_str::SmolStr;
 use squalid::_d;
 use tracing::instrument;
@@ -88,7 +88,17 @@ impl<TWorld> Storybook<TWorld> {
 impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
     #[instrument(level = "trace", skip(self, _grid))]
     fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
-        unimplemented!()
+        Ok(soft! {
+          %FlexRow children => [
+            %ComponentPanel::new(
+                self.currently_selected_component.as_ref().unwrap().get_component()
+            )
+          ]
+        })
+    }
+
+    fn flex_grow(&self) -> Option<f64> {
+        Some(1.0)
     }
 }
 
@@ -171,4 +181,27 @@ pub trait ComponentInstance<TWorld> {
         event: &TWorld,
         queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
     ) -> Result<(), anyhow::Error>;
+}
+
+pub struct ComponentPanel<'a> {
+    pub component: oelung::Component<'a>,
+}
+
+impl<'a> ComponentPanel<'a> {
+    pub fn new(component: oelung::Component<'a>) -> Self {
+        Self { component }
+    }
+}
+
+impl<'a> ComponentInterface for ComponentPanel<'a> {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            self.component.clone()
+        })
+    }
+
+    fn flex_grow(&self) -> Option<f64> {
+        Some(1.0)
+    }
 }
