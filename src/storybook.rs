@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::pin::Pin;
 use std::time::Duration;
 
 use crossterm::style::Color;
@@ -8,10 +9,11 @@ use squalid::_d;
 use tokio::sync::mpsc;
 use tracing::instrument;
 
-use crate::Error;
+use crate::{Error, ReceiveEvent};
 
 pub struct Storybook<TWorld> {
     pub components: Vec<Box<dyn Component<TWorld>>>,
+    pub currently_selected_component: Option<Box<dyn ComponentInstance<TWorld>>>,
 }
 
 pub struct StorybookBuilder<TWorld> {
@@ -31,13 +33,28 @@ impl<TWorld> StorybookBuilder<TWorld> {
     }
 
     pub fn build(self) -> Result<Storybook<TWorld>, Error> {
-        unimplemented!()
+        Ok(Storybook {
+            components: self
+                .components
+                .ok_or_else(|| Error::StorybookBuilder("expected components".to_owned()))?,
+            currently_selected_component: _d(),
+        })
     }
 }
 
 impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
     #[instrument(level = "trace", skip(self, _grid))]
     fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        unimplemented!()
+    }
+}
+
+impl<TWorld> ReceiveEvent<TWorld> for Storybook<TWorld> {
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
+        &mut self,
+        event: &TWorld,
+        queue_effect: TQueueEffect,
+    ) -> Result<(), anyhow::Error> {
         unimplemented!()
     }
 }
@@ -96,5 +113,9 @@ pub trait Component<TWorld> {
 
 pub trait ComponentInstance<TWorld> {
     fn get_component(&self) -> oelung::Component<'_>;
-    fn receive(&mut self, event: &TWorld);
+    fn receive(
+        &mut self,
+        event: &TWorld,
+        queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>,
+    ) -> Result<(), anyhow::Error>;
 }

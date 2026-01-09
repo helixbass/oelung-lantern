@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::pin::Pin;
 use std::rc::Rc;
 
 use crossterm::event::{Event, EventStream, KeyCode};
@@ -22,7 +23,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
-    let storybook = StorybookBuilder::default()
+    let mut storybook = StorybookBuilder::default()
         .components(vec![Box::new(SnakeSpinner::new())])
         .build()
         .unwrap();
@@ -30,11 +31,19 @@ async fn main() -> Result<(), anyhow::Error> {
     render_screen(&mut renderer, &storybook)?;
 
     while let Some(world) = receiver.recv().await {
+        let mut queued_effects: Vec<Pin<Box<dyn Future<Output = ()> + Send + 'static>>> = vec![];
         match world {
             World::Crossterm(Event::Key(key)) if key.code == KeyCode::Char('q') => {
                 break;
             }
-            _ => {}
+            event => {
+                storybook.receive(&tick, |future| queued_effects.push(future))?;
+                render_screen(&mut renderer, &spinner)?;
+            }
+            _ => panic!("unexpected event"),
+        }
+        for effect in queued_effects {
+            tokio::spawn(effect);
         }
     }
 
@@ -112,7 +121,7 @@ impl storybook::ComponentInstance<World> for spinner::SnakeSpinner {
     fn receive(&mut self, event: &World) {
         match event {
             World::SnakeSpinnerTick(tick) => {
-                // ReceiveEvent::<snake::Tick>::receive(self, tick, |_| unimplemented!());
+                ReceiveEvent::<snake::Tick>::receive(self, tick, |_| unimplemented!());
             }
             _ => {}
         }
