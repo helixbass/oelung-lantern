@@ -1,28 +1,34 @@
 use std::collections::HashMap;
 use std::pin::Pin;
+use std::rc::Rc;
 use std::time::Duration;
 
 use crossterm::style::Color;
 use oelung::{anyhow, ComponentInterface, Grid};
 use smol_str::SmolStr;
 use squalid::_d;
-use tokio::sync::mpsc;
 use tracing::instrument;
 
-use crate::{Error, ReceiveEvent};
+use crate::{mpsc::Sender, Error, ReceiveEvent};
 
 pub struct Storybook<TWorld> {
     pub components: Vec<Box<dyn Component<TWorld>>>,
     pub currently_selected_component: Option<Box<dyn ComponentInstance<TWorld>>>,
+    pub current_inputs: Option<Vec<InputInstance>>,
+    pub sender: Box<dyn Sender<TWorld>>,
 }
 
 pub struct StorybookBuilder<TWorld> {
     pub components: Option<Vec<Box<dyn Component<TWorld>>>>,
+    pub sender: Option<Box<dyn Sender<TWorld>>>,
 }
 
 impl<TWorld> Default for StorybookBuilder<TWorld> {
     fn default() -> Self {
-        Self { components: _d() }
+        Self {
+            components: _d(),
+            sender: _d(),
+        }
     }
 }
 
@@ -32,13 +38,50 @@ impl<TWorld> StorybookBuilder<TWorld> {
         self
     }
 
+    pub fn sender(mut self, sender: Box<dyn Sender<TWorld>>) -> Self {
+        self.sender = Some(sender);
+        self
+    }
+
     pub fn build(self) -> Result<Storybook<TWorld>, Error> {
         Ok(Storybook {
             components: self
                 .components
                 .ok_or_else(|| Error::StorybookBuilder("expected components".to_owned()))?,
             currently_selected_component: _d(),
+            current_inputs: _d(),
+            sender: self
+                .sender
+                .ok_or_else(|| Error::StorybookBuilder("expected sender".to_owned()))?,
         })
+    }
+}
+
+impl<TWorld> Storybook<TWorld> {
+    pub fn select_component(&mut self, index: usize) {
+        self.current_inputs = Some(
+            self.components[index]
+                .inputs()
+                .into_iter()
+                .map(|input| InputInstance {
+                    value: input.default_value.clone(),
+                    input,
+                })
+                .collect(),
+        );
+        self.currently_selected_component = Some(
+            self.components[index]
+                .get_component(&self.current_input_values(), self.sender.box_clone()),
+        );
+    }
+
+    pub fn current_input_values(&self) -> HashMap<SmolStr, InputValue> {
+        self.current_inputs
+            .as_ref()
+            .unwrap()
+            .into_iter()
+            .map(|input| (input.input.name.clone(), input.value.clone()))
+            .collect()
     }
 }
 
@@ -63,6 +106,7 @@ impl<TWorld> ReceiveEvent<TWorld> for Storybook<TWorld> {
     }
 }
 
+#[derive(Clone)]
 pub enum InputValue {
     Color(Color),
     Duration(Duration),
@@ -87,15 +131,15 @@ impl InputValue {
 pub struct Input {
     name: SmolStr,
     input_type: InputType,
-    is_optional: bool,
+    default_value: InputValue,
 }
 
 impl Input {
-    pub fn new(name: impl Into<SmolStr>, input_type: InputType, is_optional: bool) -> Self {
+    pub fn new(name: impl Into<SmolStr>, input_type: InputType, default_value: InputValue) -> Self {
         Self {
             name: name.into(),
             input_type,
-            is_optional,
+            default_value,
         }
     }
 }
@@ -105,13 +149,18 @@ pub enum InputType {
     Duration,
 }
 
+pub struct InputInstance {
+    pub input: Rc<Input>,
+    pub value: InputValue,
+}
+
 pub trait Component<TWorld> {
     fn name(&self) -> SmolStr;
-    fn inputs(&self) -> Vec<Input>;
+    fn inputs(&self) -> Vec<Rc<Input>>;
     fn get_component(
         &self,
-        inputs: &HashMap<SmolStr, Option<InputValue>>,
-        sender: mpsc::Sender<TWorld>,
+        inputs: &HashMap<SmolStr, InputValue>,
+        sender: Box<dyn Sender<TWorld>>,
     ) -> Box<dyn ComponentInstance<TWorld>>;
 }
 
