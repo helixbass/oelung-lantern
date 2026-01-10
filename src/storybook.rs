@@ -3,24 +3,32 @@ use std::pin::Pin;
 use std::rc::Rc;
 use std::time::Duration;
 
-use crossterm::style::Color;
+use crossterm::{
+    event::{self, KeyCode, KeyEvent},
+    style::Color,
+};
 use oelung::{anyhow, soft, ComponentInterface, Grid};
 use smol_str::SmolStr;
 use squalid::_d;
 use tracing::instrument;
 
-use crate::{mpsc::Sender, Error, ReceiveEvent};
+use crate::{
+    is_any_simple_char_press, is_ctrl_char_press, is_simple_key_press, mpsc::Sender, Error,
+    ReceiveEvent,
+};
 
 pub struct Storybook<TWorld> {
     pub components: Vec<Box<dyn Component<TWorld>>>,
     pub currently_selected_component: Option<Box<dyn ComponentInstance<TWorld>>>,
     pub current_inputs: Option<Vec<InputInstance>>,
     pub sender: Box<dyn Sender<TWorld>>,
+    pub storybook_event_from: Box<dyn StorybookEventFrom<TWorld>>,
 }
 
 pub struct StorybookBuilder<TWorld> {
     pub components: Option<Vec<Box<dyn Component<TWorld>>>>,
     pub sender: Option<Box<dyn Sender<TWorld>>>,
+    pub storybook_event_from: Option<Box<dyn StorybookEventFrom<TWorld>>>,
 }
 
 impl<TWorld> Default for StorybookBuilder<TWorld> {
@@ -28,6 +36,7 @@ impl<TWorld> Default for StorybookBuilder<TWorld> {
         Self {
             components: _d(),
             sender: _d(),
+            storybook_event_from: _d(),
         }
     }
 }
@@ -43,6 +52,14 @@ impl<TWorld> StorybookBuilder<TWorld> {
         self
     }
 
+    pub fn storybook_event_from(
+        mut self,
+        storybook_event_from: Box<dyn StorybookEventFrom<TWorld>>,
+    ) -> Self {
+        self.storybook_event_from = Some(storybook_event_from);
+        self
+    }
+
     pub fn build(self) -> Result<Storybook<TWorld>, Error> {
         Ok(Storybook {
             components: self
@@ -53,6 +70,9 @@ impl<TWorld> StorybookBuilder<TWorld> {
             sender: self
                 .sender
                 .ok_or_else(|| Error::StorybookBuilder("expected sender".to_owned()))?,
+            storybook_event_from: self.storybook_event_from.ok_or_else(|| {
+                Error::StorybookBuilder("expected storybook_event_from".to_owned())
+            })?,
         })
     }
 }
@@ -108,7 +128,11 @@ impl<TWorld> ReceiveEvent<TWorld> for Storybook<TWorld> {
         event: &TWorld,
         queue_effect: TQueueEffect,
     ) -> Result<(), anyhow::Error> {
-        if let Some(currently_selected_component) = self.currently_selected_component.as_mut() {
+        if let Some(storybook_event) = self.storybook_event_from.get(event) {
+            self.receive_storybook_event(storybook_event);
+        } else if let Some(currently_selected_component) =
+            self.currently_selected_component.as_mut()
+        {
             currently_selected_component.receive(event, Box::new(queue_effect))?;
         }
 
@@ -181,6 +205,83 @@ pub trait ComponentInstance<TWorld> {
         event: &TWorld,
         queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
     ) -> Result<(), anyhow::Error>;
+}
+
+pub trait StorybookEventFrom<TWorld> {
+    fn get(&self, event: &TWorld) -> Option<&Event>;
+}
+
+pub enum Mode {
+    Normal,
+    ComponentChooser(ComponentChooser),
+}
+
+pub enum Event {
+    OpenComponentChooser,
+    GoIntoNormalMode,
+    ComponentChooserKey(KeyEvent),
+    ChooseComponent,
+}
+
+#[derive(Default)]
+pub struct Aggregator {
+    pub state: State,
+}
+
+#[derive(Copy, Clone, Default)]
+pub enum State {
+    #[default]
+    Initial,
+    ComponentChooser,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum UpdateAggregatorState {
+    Initial,
+}
+
+impl ReceiveEvent<event::Event, Option<Event>> for Aggregator {
+    #[instrument(level = "trace", skip(self, event, _queue_effect))]
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
+        &mut self,
+        event: &event::Event,
+        _queue_effect: TQueueEffect,
+    ) -> Result<Option<Event>, anyhow::Error> {
+        Ok(match (&self.state, event) {
+            (State::Initial, event) if is_ctrl_char_press(event, 'c') => {
+                Some(Event::OpenComponentChooser)
+            }
+            (_, event) if is_simple_key_press(event, KeyCode::Esc) => {
+                self.state = State::Initial;
+                Some(Event::GoIntoNormalMode)
+            }
+            (State::ComponentChooser, event)
+                if is_any_simple_char_press(event).is_some()
+                    || is_simple_key_press(event, KeyCode::Backspace) =>
+            {
+                Some(Event::ComponentChooserKey(event.as_key_event().unwrap()))
+            }
+            (State::ComponentChooser, event) if is_simple_key_press(event, KeyCode::Enter) => {
+                Some(Event::ChooseComponent)
+            }
+            _ => None,
+        })
+    }
+}
+
+impl ReceiveEvent<UpdateAggregatorState> for Aggregator {
+    #[instrument(level = "trace", skip(self, event, _queue_effect))]
+    fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
+        &mut self,
+        event: &UpdateAggregatorState,
+        _queue_effect: TQueueEffect,
+    ) -> Result<(), anyhow::Error> {
+        Ok(match event {
+            UpdateAggregatorState::Initial => {
+                self.state = State::Initial;
+            }
+        })
+    }
 }
 
 pub struct ComponentPanel<'a> {
