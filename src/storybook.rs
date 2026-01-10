@@ -148,7 +148,7 @@ impl<TWorld> Storybook<TWorld> {
             (Mode::EditInput(_), Event::EditInputEvent(event)) => {
                 let next_event = self.mode.as_edit_input_mut().receive_key_event(&event);
                 if let Some(next_event) = next_event {
-                    self.receive_storybook_event(next_event, queue_effect);
+                    self.receive_storybook_event(next_event, queue_effect)?;
                 }
             }
             (Mode::EditInput(edit_input), Event::SetInputValue(input_value)) => {

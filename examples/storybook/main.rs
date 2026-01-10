@@ -85,7 +85,7 @@ fn listen_to_crossterm_events(sender: CrosstermSender) {
 
 enum World {
     Crossterm(Event),
-    Storybook(storybook::Event),
+    // Storybook(storybook::Event),
     SnakeSpinnerTick(spinner::snake::Tick),
     WorldSpinnerTick(spinner::world::Tick),
 }
@@ -108,7 +108,7 @@ impl storybook::StorybookEventFrom<World> for StorybookEventFrom {
     ) -> Result<Option<storybook::Event>, anyhow::Error> {
         Ok(match event {
             World::Crossterm(event) => self.aggregator.receive(event, queue_effect)?,
-            World::Storybook(event) => Some(event.clone()),
+            // World::Storybook(event) => Some(event.clone()),
             _ => None,
         })
     }
