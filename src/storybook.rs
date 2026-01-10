@@ -26,6 +26,7 @@ pub struct Storybook<TWorld> {
     pub sender: Box<dyn Sender<TWorld>>,
     pub storybook_event_from: Box<dyn StorybookEventFrom<TWorld>>,
     pub mode: Mode<TWorld>,
+    pub currently_selected_component_index: Option<usize>,
 }
 
 pub struct StorybookBuilder<TWorld> {
@@ -93,8 +94,13 @@ impl<TWorld> Storybook<TWorld> {
                 })
                 .collect(),
         );
+        self.currently_selected_component_index = Some(index);
+        self.reinstantiate_currently_selected_component();
+    }
+
+    pub fn reinstantiate_currently_selected_component(&mut self) {
         self.currently_selected_component = Some(
-            self.components[index]
+            self.components[self.currently_selected_component_index.unwrap()]
                 .get_component(&self.current_input_values(), self.sender.box_clone()),
         );
     }
@@ -156,6 +162,7 @@ impl<TWorld> Storybook<TWorld> {
                 // input.input_type? (eg Duration <-> Duration, Color <-> Color)?
                 self.current_inputs.as_mut().unwrap()[edit_input.input_index].value = input_value;
                 self.mode = Mode::Normal;
+                self.reinstantiate_currently_selected_component();
                 self.storybook_event_from.receive_update_aggregator_state(
                     UpdateAggregatorState::Initial,
                     queue_effect,
