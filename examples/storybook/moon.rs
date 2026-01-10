@@ -31,7 +31,7 @@ impl storybook::Component<World> for MoonSpinner {
         vec![Rc::new(storybook::Input::new(
             "period",
             storybook::InputType::Duration,
-            storybook::InputValue::Duration(Duration::from_millis(1000)),
+            storybook::InputValue::Duration(Duration::from_millis(moon::DEFAULT_PERIOD)),
         ))]
     }
 

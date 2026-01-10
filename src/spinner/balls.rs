@@ -15,6 +15,8 @@ fn steps() -> &'static [char] {
     &*STEPS
 }
 
+pub const DEFAULT_PERIOD: u64 = 910;
+
 pub struct BallsSpinner {
     pub color: Option<Color>,
     pub join_handle: JoinHandle<()>,
@@ -29,7 +31,7 @@ impl BallsSpinner {
         color: Option<Color>,
         sender: Box<dyn Sender<Tick>>,
     ) -> Self {
-        let period = period.unwrap_or_else(|| Duration::from_millis(910));
+        let period = period.unwrap_or_else(|| Duration::from_millis(DEFAULT_PERIOD));
         let uuid = Uuid::new_v4();
         let join_handle = tokio::spawn(async move {
             let mut interval = interval(period / u32::try_from(steps().len()).unwrap());

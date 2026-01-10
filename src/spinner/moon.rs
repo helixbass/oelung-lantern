@@ -9,6 +9,8 @@ use uuid::Uuid;
 
 use crate::{mpsc::Sender, ReceiveEvent};
 
+pub const DEFAULT_PERIOD: u64 = 1600;
+
 fn steps() -> &'static [&'static str] {
     static STEPS: LazyLock<Vec<&'static str>> =
         LazyLock::new(|| vec!["🌑", "🌒", "🌓", "🌔", "🌕", "🌖", "🌗", "🌘"]);
@@ -24,7 +26,7 @@ pub struct MoonSpinner {
 impl MoonSpinner {
     #[instrument(level = "trace", skip(period, sender))]
     pub fn new(period: Option<Duration>, sender: Box<dyn Sender<Tick>>) -> Self {
-        let period = period.unwrap_or_else(|| Duration::from_millis(1600));
+        let period = period.unwrap_or_else(|| Duration::from_millis(DEFAULT_PERIOD));
         let uuid = Uuid::new_v4();
         let join_handle = tokio::spawn(async move {
             let mut interval = interval(period / u32::try_from(steps().len()).unwrap());

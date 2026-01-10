@@ -10,6 +10,8 @@ use uuid::Uuid;
 
 use crate::{mpsc::Sender, ReceiveEvent};
 
+pub const DEFAULT_PERIOD: u64 = 960;
+
 fn steps() -> &'static [char] {
     static STEPS: LazyLock<Vec<char>> =
         LazyLock::new(|| vec!['⠁', '⠂', '⠄', '⡀', '⢀', '⠠', '⠐', '⠈']);
@@ -30,7 +32,7 @@ impl BounceSpinner {
         color: Option<Color>,
         sender: Box<dyn Sender<Tick>>,
     ) -> Self {
-        let period = period.unwrap_or_else(|| Duration::from_millis(960));
+        let period = period.unwrap_or_else(|| Duration::from_millis(DEFAULT_PERIOD));
         let uuid = Uuid::new_v4();
         let join_handle = tokio::spawn(async move {
             let mut interval = interval(period / u32::try_from(steps().len()).unwrap());

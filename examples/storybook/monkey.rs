@@ -31,7 +31,7 @@ impl storybook::Component<World> for MonkeySpinner {
         vec![Rc::new(storybook::Input::new(
             "period",
             storybook::InputType::Duration,
-            storybook::InputValue::Duration(Duration::from_millis(1000)),
+            storybook::InputValue::Duration(Duration::from_millis(monkey::DEFAULT_PERIOD)),
         ))]
     }
 

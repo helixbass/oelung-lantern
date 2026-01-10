@@ -33,7 +33,7 @@ impl storybook::Component<World> for BounceSpinner {
             Rc::new(storybook::Input::new(
                 "period",
                 storybook::InputType::Duration,
-                storybook::InputValue::Duration(Duration::from_millis(1000)),
+                storybook::InputValue::Duration(Duration::from_millis(bounce::DEFAULT_PERIOD)),
             )),
             Rc::new(storybook::Input::new(
                 "color",

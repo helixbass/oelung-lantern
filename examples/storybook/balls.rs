@@ -33,7 +33,7 @@ impl storybook::Component<World> for BallsSpinner {
             Rc::new(storybook::Input::new(
                 "period",
                 storybook::InputType::Duration,
-                storybook::InputValue::Duration(Duration::from_millis(1000)),
+                storybook::InputValue::Duration(Duration::from_millis(balls::DEFAULT_PERIOD)),
             )),
             Rc::new(storybook::Input::new(
                 "color",
