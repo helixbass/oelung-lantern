@@ -114,7 +114,7 @@ impl<TWorld> Storybook<TWorld> {
     ) -> Result<(), anyhow::Error> {
         match (&self.mode, event) {
             (Mode::Normal, Event::OpenComponentChooser) => {
-                self.mode = Mode::ComponentChooser(_d());
+                self.mode = Mode::ComponentChooser(ComponentChooser::new(&self.components));
             }
             (_, Event::GoIntoNormalMode) => {
                 self.mode = Mode::Normal;
@@ -278,17 +278,17 @@ pub struct ComponentChooser<TWorld> {
     phantom_data: PhantomData<TWorld>,
 }
 
-impl<TWorld> Default for ComponentChooser<TWorld> {
-    fn default() -> Self {
-        Self {
+impl<TWorld> ComponentChooser<TWorld> {
+    fn new(components: &[Box<dyn Component<TWorld>>]) -> Self {
+        let mut ret = Self {
             search: _d(),
             indices: _d(),
             phantom_data: PhantomData,
-        }
+        };
+        ret.recompute_indices(components);
+        ret
     }
-}
 
-impl<TWorld> ComponentChooser<TWorld> {
     pub fn receive_key_event(
         &mut self,
         key_event: &KeyEvent,
@@ -310,7 +310,8 @@ impl<TWorld> ComponentChooser<TWorld> {
             .into_iter()
             .enumerate()
             .filter_map(|(index, component)| {
-                component.name().starts_with(&self.search).then_some(index)
+                (self.search.is_empty() || component.name().starts_with(&self.search))
+                    .then_some(index)
             })
             .collect();
     }
