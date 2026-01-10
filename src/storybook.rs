@@ -140,10 +140,15 @@ impl<TWorld> Storybook<TWorld> {
                 self.mode = Mode::SelectInput;
             }
             (Mode::SelectInput, Event::SelectInput(input_index)) => {
-                self.mode = Mode::EditInput(EditInput::new(input_index));
+                self.mode = Mode::EditInput(EditInput::new(input_index, self.current_inputs.as_ref().unwrap()));
             }
             (Mode::EditInput(_), Event::EditInputEvent(event)) => {
                 self.mode.as_edit_input_mut().receive_key_event(&event);
+            }
+            (Mode::EditInput(edit_input), Event::SetInputValue(input_value)) => {
+                // TODO: sanity-check-assert here that the input value matches the
+                // input.input_type? (eg Duration <-> Duration, Color <-> Color)?
+                self.current_inputs.as_mut().unwrap()[edit_input.input_index].value = input_value;
             }
             _ => panic!("unexpected event"),
         }
@@ -204,7 +209,7 @@ impl<TWorld> ReceiveEvent<TWorld> for Storybook<TWorld> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum InputValue {
     Color(Color),
     Duration(Duration),
@@ -332,6 +337,70 @@ impl<TWorld> ComponentChooser<TWorld> {
     }
 }
 
+pub struct EditInput {
+    pub input_index: usize,
+    pub state: EditInputState,
+}
+
+impl EditInput {
+    pub fn new(input_index: usize, inputs: &[InputInstance]) -> Self {
+        let input = &inputs[input_index];
+        Self {
+            input_index,
+            state: match input.input.input_type {
+                InputType::Duration => {
+                    EditInputState::Duration(EditInputDuration::new(input.value.as_duration()))
+                }
+                InputType::Color => {
+                    EditInputState::Color(EditInputColor::new(input.value.as_color()))
+                }
+            },
+        }
+    }
+
+    pub fn receive_key_event(&mut self, key_event: &KeyEvent) {
+        self.state.receive_key_event(key_event);
+    }
+}
+
+pub enum EditInputState {
+    Duration(EditInputDuration),
+    Color(EditInputColor),
+}
+
+impl EditInputState {
+    pub fn receive_key_event(&mut self, key_event: &KeyEvent) {
+        match self {
+            Self::Duration(duration) => duration.receive_key_event(key_event),
+            Self::Color(color) => color.receive_key_event(key_event),
+        }
+    }
+}
+
+pub struct EditInputDuration {
+    pub millis: String,
+}
+
+impl EditInputDuration {
+    pub fn new(duration: &Duration) -> Self {
+        Self {
+            millis: duration.as_millis().to_string(),
+        }
+    }
+
+    pub fn receive_key_event(&mut self, key_event: &KeyEvent) {
+        if let Some(ch) = is_simple_digit_press(key_event) {
+            self.millis.push(ch);
+        } else if is_simple_key_press_key_event(key_event, KeyCode::Backspace) {
+            let _ = self.millis.pop();
+        } else if is_simple_key_press_key_event(key_event, KeyCode::Enter) {
+            self.sender.send(InputValue::)
+        } else {
+            panic!("unexpected key event")
+        }
+    }
+}
+
 #[derive(Default)]
 pub enum Mode<TWorld> {
     #[default]
@@ -366,6 +435,7 @@ pub enum Event {
     GoIntoSelectInput,
     SelectInput(usize),
     EditInputEvent(KeyEvent),
+    SetInputValue(InputValue),
 }
 
 #[derive(Default)]
