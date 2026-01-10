@@ -11,8 +11,10 @@ use oelung_lantern::{
 };
 
 mod snake;
+mod world;
 
 use snake::SnakeSpinner;
+use world::WorldSpinner;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
@@ -23,7 +25,10 @@ async fn main() -> Result<(), anyhow::Error> {
     listen_to_crossterm_events(CrosstermSender::from(sender.clone()));
 
     let mut storybook = StorybookBuilder::default()
-        .components(vec![Box::new(SnakeSpinner::new())])
+        .components(vec![
+            Box::new(SnakeSpinner::new()),
+            Box::new(WorldSpinner::new()),
+        ])
         .sender(Box::new(WorldSender::from(sender.clone())))
         .build()
         .unwrap();
@@ -80,8 +85,10 @@ fn listen_to_crossterm_events(sender: CrosstermSender) {
 enum World {
     Crossterm(Event),
     SnakeSpinnerTick(spinner::snake::Tick),
+    WorldSpinnerTick(spinner::world::Tick),
 }
 
 generate_sender!(World, Crossterm, Event);
 generate_sender_from_sender!(World, SnakeSpinnerTick, spinner::snake::Tick);
+generate_sender_from_sender!(World, WorldSpinnerTick, spinner::world::Tick);
 generate_full_sender!(World);
