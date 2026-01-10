@@ -110,7 +110,7 @@ impl<TWorld> Storybook<TWorld> {
         &mut self,
         event: Event,
         queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
-    ) {
+    ) -> Result<(), anyhow::Error> {
         match (&self.mode, event) {
             (Mode::Normal, Event::OpenComponentChooser) => {
                 self.mode = Mode::ComponentChooser(_d());
@@ -120,12 +120,14 @@ impl<TWorld> Storybook<TWorld> {
             }
             (Mode::ComponentChooser(component_chooser), Event::ChooseComponent) => {
                 if !unimplemented!("is a component selected") {
-                    return;
+                    return Ok(());
                 }
                 unimplemented!();
                 self.mode = Mode::Normal;
-                self.storybook_event_from
-                    .receive_update_aggregator_state(UpdateAggregatorState::Initial, queue_effect);
+                self.storybook_event_from.receive_update_aggregator_state(
+                    UpdateAggregatorState::Initial,
+                    queue_effect,
+                )?;
             }
             (Mode::ComponentChooser(_), Event::ComponentChooserKey(key_event)) => {
                 unimplemented!()
@@ -133,6 +135,8 @@ impl<TWorld> Storybook<TWorld> {
             }
             _ => panic!("unexpected event"),
         }
+
+        Ok(())
     }
 }
 
@@ -163,7 +167,7 @@ impl<TWorld> ReceiveEvent<TWorld> for Storybook<TWorld> {
             .storybook_event_from
             .get(event, Box::new(&mut queue_effect))?
         {
-            self.receive_storybook_event(storybook_event, Box::new(&mut queue_effect));
+            self.receive_storybook_event(storybook_event, Box::new(&mut queue_effect))?;
         } else if let Some(currently_selected_component) =
             self.currently_selected_component.as_mut()
         {
