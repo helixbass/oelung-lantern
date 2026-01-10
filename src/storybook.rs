@@ -145,12 +145,22 @@ impl<TWorld> Storybook<TWorld> {
 impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
     #[instrument(level = "trace", skip(self, _grid))]
     fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
-        Ok(soft! {
-          %FlexRow children => [
-            %ComponentPanel::new(
-                self.currently_selected_component.as_ref().unwrap().get_component()
-            )
-          ]
+        Ok(match &self.mode {
+            Mode::Normal => soft! {
+                %FlexRow children => [
+                  %ComponentPanel::new(
+                      self.currently_selected_component.as_ref().unwrap().get_component()
+                  )
+                ]
+            },
+            Mode::ComponentChooser(component_chooser) => soft! {
+                %FlexRow children => [
+                  %ComponentChooserView::new(
+                      component_chooser,
+                      &self.components,
+                  )
+                ]
+            },
         })
     }
 
@@ -412,5 +422,80 @@ impl<'a> ComponentInterface for ComponentPanel<'a> {
 
     fn flex_grow(&self) -> Option<f64> {
         Some(1.0)
+    }
+}
+
+pub struct ComponentChooserView<'a, TWorld> {
+    pub component_chooser: &'a ComponentChooser<TWorld>,
+    pub components: &'a [Box<dyn Component<TWorld>>],
+}
+
+impl<'a, TWorld> ComponentChooserView<'a, TWorld> {
+    pub fn new(
+        component_chooser: &'a ComponentChooser<TWorld>,
+        components: &'a [Box<dyn Component<TWorld>>],
+    ) -> Self {
+        Self {
+            component_chooser,
+            components,
+        }
+    }
+}
+
+impl<'a, TWorld> ComponentInterface for ComponentChooserView<'a, TWorld> {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            %FlexColumn
+              children => [
+                %ComponentChooserInput::new(&self.component_chooser.search)
+                %ComponentChooserResults::new(
+                    self.component_chooser,
+                    self.components,
+                )
+              ]
+        })
+    }
+
+    fn flex_grow(&self) -> Option<f64> {
+        Some(1.0)
+    }
+}
+
+pub struct ComponentChooserResults<'a, TWorld> {
+    pub component_chooser: &'a ComponentChooser<TWorld>,
+    pub components: &'a [Box<dyn Component<TWorld>>],
+}
+
+impl<'a, TWorld> ComponentChooserResults<'a, TWorld> {
+    pub fn new(
+        component_chooser: &'a ComponentChooser<TWorld>,
+        components: &'a [Box<dyn Component<TWorld>>],
+    ) -> Self {
+        Self {
+            component_chooser,
+            components,
+        }
+    }
+}
+
+impl<'a, TWorld> ComponentInterface for ComponentChooserResults<'a, TWorld> {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            %FlexColumn
+              children =>
+                self
+                    .component_chooser
+                    .indices
+                    .iter()
+                    .map(|index| &self.components[*index])
+                    .map(|component| -> Result<_, anyhow::Error> {
+                        Ok(soft! {
+                            %Text component.name()
+                        })
+                    })
+                    .collect::<Result<_, _>>()?
+        })
     }
 }
