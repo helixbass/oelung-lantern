@@ -574,13 +574,18 @@ impl<'a, TWorld> InputView<'a, TWorld> {
 impl<'a, TWorld> ComponentInterface for InputView<'a, TWorld> {
     #[instrument(level = "trace", skip(self, _grid))]
     fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
-        Ok(match self.input.input.input_type {
-            InputType::Duration => soft! {
-                %DurationInput::new(self.input, self.sender.box_clone())
-            },
-            InputType::Color => soft! {
-                %ColorInput::new(self.input, self.sender.box_clone())
-            },
+        Ok(soft! {
+            %FlexColumn children => [
+              match self.input.input.input_type {
+                  InputType::Duration => soft! {
+                      %DurationInput::new(self.input, self.sender.box_clone())
+                  },
+                  InputType::Color => soft! {
+                      %ColorInput::new(self.input, self.sender.box_clone())
+                  },
+              }
+              %Text " "
+            ]
         })
     }
 }
