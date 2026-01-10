@@ -102,12 +102,23 @@ struct StorybookEventFrom {
 impl storybook::StorybookEventFrom<World> for StorybookEventFrom {
     fn get<'a>(
         &mut self,
-        event: &TWorld,
+        event: &World,
         queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
-    ) -> Option<storybook::Event> {
-        match event {
-            World::Crossterm(event) => self.aggregator.receive(event, queue_effect),
+    ) -> Result<Option<storybook::Event>, anyhow::Error> {
+        Ok(match event {
+            World::Crossterm(event) => self.aggregator.receive(event, queue_effect)?,
             _ => None,
-        }
+        })
+    }
+
+    fn receive_update_aggregator_state<'a>(
+        &mut self,
+        update_aggregator_state: storybook::UpdateAggregatorState,
+        queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
+    ) -> Result<(), anyhow::Error> {
+        self.aggregator
+            .receive(&update_aggregator_state, queue_effect)?;
+
+        Ok(())
     }
 }

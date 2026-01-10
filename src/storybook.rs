@@ -106,7 +106,11 @@ impl<TWorld> Storybook<TWorld> {
             .collect()
     }
 
-    pub fn receive_storybook_event(&mut self, event: Event) {
+    pub fn receive_storybook_event<'a>(
+        &mut self,
+        event: Event,
+        queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
+    ) {
         match (&self.mode, event) {
             (Mode::Normal, Event::OpenComponentChooser) => {
                 self.mode = Mode::ComponentChooser(_d());
@@ -115,7 +119,13 @@ impl<TWorld> Storybook<TWorld> {
                 self.mode = Mode::Normal;
             }
             (Mode::ComponentChooser(component_chooser), Event::ChooseComponent) => {
-                unimplemented!()
+                if !unimplemented!("is a component selected") {
+                    return;
+                }
+                unimplemented!();
+                self.mode = Mode::Normal;
+                self.storybook_event_from
+                    .receive_update_aggregator_state(UpdateAggregatorState::Initial, queue_effect);
             }
             (Mode::ComponentChooser(_), Event::ComponentChooserKey(key_event)) => {
                 unimplemented!()
@@ -151,9 +161,9 @@ impl<TWorld> ReceiveEvent<TWorld> for Storybook<TWorld> {
     ) -> Result<(), anyhow::Error> {
         if let Some(storybook_event) = self
             .storybook_event_from
-            .get(event, Box::new(&mut queue_effect))
+            .get(event, Box::new(&mut queue_effect))?
         {
-            self.receive_storybook_event(storybook_event);
+            self.receive_storybook_event(storybook_event, Box::new(&mut queue_effect));
         } else if let Some(currently_selected_component) =
             self.currently_selected_component.as_mut()
         {
@@ -236,7 +246,14 @@ pub trait StorybookEventFrom<TWorld> {
         &mut self,
         event: &TWorld,
         queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
-    ) -> Option<Event>;
+    ) -> Result<Option<Event>, anyhow::Error>;
+    fn receive_update_aggregator_state<'a>(
+        &mut self,
+        _update_aggregator_state: UpdateAggregatorState,
+        _queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
+    ) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
 }
 
 #[derive(Default)]
