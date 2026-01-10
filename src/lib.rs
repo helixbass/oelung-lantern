@@ -33,8 +33,8 @@ pub use gradient::{Gradient, GradientBuilder};
 pub use gradient_background::GradientBackground;
 pub use keys::{
     is_any_simple_char_press, is_any_simple_char_press_key_event, is_ctrl_char_press,
-    is_simple_char_press, is_simple_digit_press, is_simple_key_press,
-    is_simple_key_press_key_event,
+    is_simple_char_press, is_simple_digit_press, is_simple_digit_press_key_event,
+    is_simple_key_press, is_simple_key_press_key_event,
 };
 pub use loading_message::LoadingMessage;
 pub use partial_column::PartialColumn;

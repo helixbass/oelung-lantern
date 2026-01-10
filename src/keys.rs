@@ -70,6 +70,10 @@ pub fn is_any_simple_char_press(event: &Event) -> Option<char> {
     is_any_simple_char_press_key_event(event)
 }
 
+pub fn is_simple_digit_press_key_event(event: &KeyEvent) -> Option<char> {
+    is_any_simple_char_press_key_event(event).filter(|ch| *ch >= '0' && *ch <= '9')
+}
+
 pub fn is_simple_digit_press(event: &Event) -> Option<char> {
     is_any_simple_char_press(event).filter(|ch| *ch >= '0' && *ch <= '9')
 }

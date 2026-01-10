@@ -15,8 +15,8 @@ use tracing::instrument;
 
 use crate::{
     is_any_simple_char_press, is_any_simple_char_press_key_event, is_ctrl_char_press,
-    is_simple_digit_press, is_simple_key_press, is_simple_key_press_key_event, mpsc::Sender, Error,
-    ReceiveEvent,
+    is_simple_digit_press, is_simple_digit_press_key_event, is_simple_key_press,
+    is_simple_key_press_key_event, mpsc::Sender, Error, ReceiveEvent,
 };
 
 pub struct Storybook<TWorld> {
@@ -140,15 +140,25 @@ impl<TWorld> Storybook<TWorld> {
                 self.mode = Mode::SelectInput;
             }
             (Mode::SelectInput, Event::SelectInput(input_index)) => {
-                self.mode = Mode::EditInput(EditInput::new(input_index, self.current_inputs.as_ref().unwrap()));
+                self.mode = Mode::EditInput(EditInput::new(
+                    input_index,
+                    self.current_inputs.as_ref().unwrap(),
+                ));
             }
             (Mode::EditInput(_), Event::EditInputEvent(event)) => {
-                self.mode.as_edit_input_mut().receive_key_event(&event);
+                let next_event = self.mode.as_edit_input_mut().receive_key_event(&event);
+                if let Some(next_event) = next_event {
+                    self.receive_storybook_event(next_event, queue_effect);
+                }
             }
             (Mode::EditInput(edit_input), Event::SetInputValue(input_value)) => {
                 // TODO: sanity-check-assert here that the input value matches the
                 // input.input_type? (eg Duration <-> Duration, Color <-> Color)?
                 self.current_inputs.as_mut().unwrap()[edit_input.input_index].value = input_value;
+                self.storybook_event_from.receive_update_aggregator_state(
+                    UpdateAggregatorState::Initial,
+                    queue_effect,
+                )?;
             }
             _ => panic!("unexpected event"),
         }
@@ -358,8 +368,8 @@ impl EditInput {
         }
     }
 
-    pub fn receive_key_event(&mut self, key_event: &KeyEvent) {
-        self.state.receive_key_event(key_event);
+    pub fn receive_key_event(&mut self, key_event: &KeyEvent) -> Option<Event> {
+        self.state.receive_key_event(key_event)
     }
 }
 
@@ -369,7 +379,7 @@ pub enum EditInputState {
 }
 
 impl EditInputState {
-    pub fn receive_key_event(&mut self, key_event: &KeyEvent) {
+    pub fn receive_key_event(&mut self, key_event: &KeyEvent) -> Option<Event> {
         match self {
             Self::Duration(duration) => duration.receive_key_event(key_event),
             Self::Color(color) => color.receive_key_event(key_event),
@@ -388,13 +398,17 @@ impl EditInputDuration {
         }
     }
 
-    pub fn receive_key_event(&mut self, key_event: &KeyEvent) {
-        if let Some(ch) = is_simple_digit_press(key_event) {
+    pub fn receive_key_event(&mut self, key_event: &KeyEvent) -> Option<Event> {
+        if let Some(ch) = is_simple_digit_press_key_event(key_event) {
             self.millis.push(ch);
+            None
         } else if is_simple_key_press_key_event(key_event, KeyCode::Backspace) {
             let _ = self.millis.pop();
+            None
         } else if is_simple_key_press_key_event(key_event, KeyCode::Enter) {
-            self.sender.send(InputValue::)
+            Some(Event::SetInputValue(InputValue::Duration(
+                Duration::from_millis(self.millis.parse::<u64>().unwrap()),
+            )))
         } else {
             panic!("unexpected key event")
         }
