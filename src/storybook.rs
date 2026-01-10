@@ -120,10 +120,10 @@ impl<TWorld> Storybook<TWorld> {
                 self.mode = Mode::Normal;
             }
             (Mode::ComponentChooser(component_chooser), Event::ChooseComponent) => {
-                if !unimplemented!("is a component selected") {
+                if component_chooser.indices.is_empty() {
                     return Ok(());
                 }
-                unimplemented!();
+                self.select_component(component_chooser.indices[0]);
                 self.mode = Mode::Normal;
                 self.storybook_event_from.receive_update_aggregator_state(
                     UpdateAggregatorState::Initial,
@@ -296,7 +296,13 @@ impl<TWorld> ComponentChooser<TWorld> {
     }
 
     fn recompute_indices(&mut self, components: &[Box<dyn Component<TWorld>>]) {
-        unimplemented!()
+        self.indices = components
+            .into_iter()
+            .enumerate()
+            .filter_map(|(index, component)| {
+                component.name().starts_with(&self.search).then_some(index)
+            })
+            .collect();
     }
 }
 
