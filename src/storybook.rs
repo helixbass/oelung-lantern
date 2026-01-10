@@ -22,11 +22,11 @@ use crate::{
 pub struct Storybook<TWorld> {
     pub components: Vec<Box<dyn Component<TWorld>>>,
     pub currently_selected_component: Option<Box<dyn ComponentInstance<TWorld>>>,
+    pub currently_selected_component_index: Option<usize>,
     pub current_inputs: Option<Vec<InputInstance>>,
     pub sender: Box<dyn Sender<TWorld>>,
     pub storybook_event_from: Box<dyn StorybookEventFrom<TWorld>>,
     pub mode: Mode<TWorld>,
-    pub currently_selected_component_index: Option<usize>,
 }
 
 pub struct StorybookBuilder<TWorld> {
@@ -70,6 +70,7 @@ impl<TWorld> StorybookBuilder<TWorld> {
                 .components
                 .ok_or_else(|| Error::StorybookBuilder("expected components".to_owned()))?,
             currently_selected_component: _d(),
+            currently_selected_component_index: _d(),
             current_inputs: _d(),
             sender: self
                 .sender
