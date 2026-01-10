@@ -151,6 +151,10 @@ impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
                   %ComponentPanel::new(
                       self.currently_selected_component.as_ref().unwrap().get_component()
                   )
+                  %InputsPanel::new(
+                      self.current_inputs.as_ref().unwrap(),
+                      self.sender.box_clone(),
+                  )
                 ]
             },
             Mode::ComponentChooser(component_chooser) => soft! {
@@ -228,6 +232,7 @@ impl Input {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum InputType {
     Color,
     Duration,
@@ -333,7 +338,7 @@ impl<TWorld> Mode<TWorld> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Event {
     OpenComponentChooser,
     GoIntoNormalMode,
@@ -521,6 +526,118 @@ impl<'a, TWorld> ComponentInterface for ComponentChooserResults<'a, TWorld> {
             true => soft! {
                 %Text "no matches"
             },
+        })
+    }
+}
+
+pub struct InputsPanel<'a, TWorld> {
+    pub inputs: &'a [InputInstance],
+    pub sender: Box<dyn Sender<TWorld>>,
+}
+
+impl<'a, TWorld> InputsPanel<'a, TWorld> {
+    pub fn new(inputs: &'a [InputInstance], sender: Box<dyn Sender<TWorld>>) -> Self {
+        Self { inputs, sender }
+    }
+}
+
+impl<'a, TWorld> ComponentInterface for InputsPanel<'a, TWorld> {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            %FlexColumn
+              children =>
+                self.inputs.into_iter().map(|input| -> Result<_, anyhow::Error> {
+                    Ok(soft! {
+                        %InputView::new(input, self.sender.box_clone())
+                    })
+                }).collect::<Result<_, _>>()?
+        })
+    }
+
+    fn flex_grow(&self) -> Option<f64> {
+        Some(1.0)
+    }
+}
+
+pub struct InputView<'a, TWorld> {
+    pub input: &'a InputInstance,
+    pub sender: Box<dyn Sender<TWorld>>,
+}
+
+impl<'a, TWorld> InputView<'a, TWorld> {
+    pub fn new(input: &'a InputInstance, sender: Box<dyn Sender<TWorld>>) -> Self {
+        Self { input, sender }
+    }
+}
+
+impl<'a, TWorld> ComponentInterface for InputView<'a, TWorld> {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(match self.input.input.input_type {
+            InputType::Duration => soft! {
+                %DurationInput::new(self.input, self.sender.box_clone())
+            },
+            InputType::Color => soft! {
+                %ColorInput::new(self.input, self.sender.box_clone())
+            },
+        })
+    }
+}
+
+pub struct DurationInput<'a, TWorld> {
+    pub input: &'a InputInstance,
+    pub sender: Box<dyn Sender<TWorld>>,
+}
+
+impl<'a, TWorld> DurationInput<'a, TWorld> {
+    pub fn new(input: &'a InputInstance, sender: Box<dyn Sender<TWorld>>) -> Self {
+        assert!(
+            input.input.input_type == InputType::Duration
+                && matches!(&input.value, InputValue::Duration(_))
+        );
+        Self { input, sender }
+    }
+}
+
+impl<'a, TWorld> ComponentInterface for DurationInput<'a, TWorld> {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            %FlexColumn children => [
+              %Text &self.input.input.name
+              %Text children => [
+                %Text self.input.value.as_duration().as_millis()
+                %Text " millis"
+              ]
+            ]
+        })
+    }
+}
+
+pub struct ColorInput<'a, TWorld> {
+    pub input: &'a InputInstance,
+    pub sender: Box<dyn Sender<TWorld>>,
+}
+
+impl<'a, TWorld> ColorInput<'a, TWorld> {
+    pub fn new(input: &'a InputInstance, sender: Box<dyn Sender<TWorld>>) -> Self {
+        assert!(
+            input.input.input_type == InputType::Color
+                && matches!(&input.value, InputValue::Color(_))
+        );
+        Self { input, sender }
+    }
+}
+
+impl<'a, TWorld> ComponentInterface for ColorInput<'a, TWorld> {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            %FlexColumn children => [
+              %Text &self.input.input.name
+              %Text format!("{:?}", self.input.value.as_color())
+            ]
         })
     }
 }
