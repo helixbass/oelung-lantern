@@ -10,9 +10,19 @@ use oelung_lantern::{
     storybook, ReceiveEvent, Storybook, StorybookBuilder,
 };
 
+mod balls;
+mod bar;
+mod bounce;
+mod ellipsis;
+mod monkey;
 mod snake;
 mod world;
 
+use balls::BallsSpinner;
+use bar::BarSpinner;
+use bounce::BounceSpinner;
+use ellipsis::EllipsisSpinner;
+use monkey::MonkeySpinner;
 use snake::SnakeSpinner;
 use world::WorldSpinner;
 
@@ -26,6 +36,11 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let mut storybook = StorybookBuilder::default()
         .components(vec![
+            Box::new(BallsSpinner::new()),
+            Box::new(BarSpinner::new()),
+            Box::new(BounceSpinner::new()),
+            Box::new(EllipsisSpinner::new()),
+            Box::new(MonkeySpinner::new()),
             Box::new(SnakeSpinner::new()),
             Box::new(WorldSpinner::new()),
         ])
@@ -86,11 +101,21 @@ fn listen_to_crossterm_events(sender: CrosstermSender) {
 enum World {
     Crossterm(Event),
     // Storybook(storybook::Event),
+    BallsSpinnerTick(spinner::balls::Tick),
+    BarSpinnerTick(spinner::bar::Tick),
+    BounceSpinnerTick(spinner::bounce::Tick),
+    EllipsisSpinnerTick(spinner::ellipsis::Tick),
+    MonkeySpinnerTick(spinner::monkey::Tick),
     SnakeSpinnerTick(spinner::snake::Tick),
     WorldSpinnerTick(spinner::world::Tick),
 }
 
 generate_sender!(World, Crossterm, Event);
+generate_sender_from_sender!(World, BallsSpinnerTick, spinner::balls::Tick);
+generate_sender_from_sender!(World, BarSpinnerTick, spinner::bar::Tick);
+generate_sender_from_sender!(World, BounceSpinnerTick, spinner::bounce::Tick);
+generate_sender_from_sender!(World, EllipsisSpinnerTick, spinner::ellipsis::Tick);
+generate_sender_from_sender!(World, MonkeySpinnerTick, spinner::monkey::Tick);
 generate_sender_from_sender!(World, SnakeSpinnerTick, spinner::snake::Tick);
 generate_sender_from_sender!(World, WorldSpinnerTick, spinner::world::Tick);
 generate_full_sender!(World);
