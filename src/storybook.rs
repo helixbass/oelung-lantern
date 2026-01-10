@@ -15,7 +15,8 @@ use tracing::instrument;
 
 use crate::{
     is_any_simple_char_press, is_any_simple_char_press_key_event, is_ctrl_char_press,
-    is_simple_key_press, is_simple_key_press_key_event, mpsc::Sender, Error, ReceiveEvent,
+    is_simple_digit_press, is_simple_key_press, is_simple_key_press_key_event, mpsc::Sender, Error,
+    ReceiveEvent,
 };
 
 pub struct Storybook<TWorld> {
@@ -134,6 +135,15 @@ impl<TWorld> Storybook<TWorld> {
                 self.mode
                     .as_component_chooser_mut()
                     .receive_key_event(&key_event, &self.components);
+            }
+            (Mode::Normal, Event::GoIntoSelectInput) => {
+                self.mode = Mode::SelectInput;
+            }
+            (Mode::SelectInput, Event::SelectInput(input_index)) => {
+                self.mode = Mode::EditInput(EditInput::new(input_index));
+            }
+            (Mode::EditInput(_), Event::EditInputEvent(event)) => {
+                self.mode.as_edit_input_mut().receive_key_event(&event);
             }
             _ => panic!("unexpected event"),
         }
@@ -327,6 +337,8 @@ pub enum Mode<TWorld> {
     #[default]
     Normal,
     ComponentChooser(ComponentChooser<TWorld>),
+    SelectInput,
+    EditInput(EditInput),
 }
 
 impl<TWorld> Mode<TWorld> {
@@ -334,6 +346,13 @@ impl<TWorld> Mode<TWorld> {
         match self {
             Self::ComponentChooser(component_chooser) => component_chooser,
             _ => panic!("expected component chooser"),
+        }
+    }
+
+    pub fn as_edit_input_mut(&mut self) -> &mut EditInput {
+        match self {
+            Self::EditInput(edit_input) => edit_input,
+            _ => panic!("expected edit input"),
         }
     }
 }
@@ -344,6 +363,9 @@ pub enum Event {
     GoIntoNormalMode,
     ComponentChooserKey(KeyEvent),
     ChooseComponent,
+    GoIntoSelectInput,
+    SelectInput(usize),
+    EditInputEvent(KeyEvent),
 }
 
 #[derive(Default)]
@@ -356,6 +378,8 @@ pub enum State {
     #[default]
     Initial,
     ComponentChooser,
+    SelectInput,
+    EditInput,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -387,6 +411,20 @@ impl ReceiveEvent<event::Event, Option<Event>> for Aggregator {
             }
             (State::ComponentChooser, event) if is_simple_key_press(event, KeyCode::Enter) => {
                 Some(Event::ChooseComponent)
+            }
+            (State::Initial, event) if is_ctrl_char_press(event, 'i') => {
+                self.state = State::SelectInput;
+                Some(Event::OpenComponentChooser)
+            }
+            (State::SelectInput, event) if is_simple_digit_press(event).is_some() => {
+                self.state = State::EditInput;
+                Some(Event::SelectInput(
+                    usize::try_from(is_simple_digit_press(event).unwrap().to_digit(10).unwrap())
+                        .unwrap(),
+                ))
+            }
+            (State::EditInput, event) if matches!(event, event::Event::Key(_)) => {
+                Some(Event::EditInputEvent(event.as_key_event().unwrap()))
             }
             _ => None,
         })
