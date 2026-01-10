@@ -15,6 +15,7 @@ mod bar;
 mod bounce;
 mod ellipsis;
 mod monkey;
+mod moon;
 mod snake;
 mod world;
 
@@ -23,6 +24,7 @@ use bar::BarSpinner;
 use bounce::BounceSpinner;
 use ellipsis::EllipsisSpinner;
 use monkey::MonkeySpinner;
+use moon::MoonSpinner;
 use snake::SnakeSpinner;
 use world::WorldSpinner;
 
@@ -41,6 +43,7 @@ async fn main() -> Result<(), anyhow::Error> {
             Box::new(BounceSpinner::new()),
             Box::new(EllipsisSpinner::new()),
             Box::new(MonkeySpinner::new()),
+            Box::new(MoonSpinner::new()),
             Box::new(SnakeSpinner::new()),
             Box::new(WorldSpinner::new()),
         ])
@@ -106,6 +109,7 @@ enum World {
     BounceSpinnerTick(spinner::bounce::Tick),
     EllipsisSpinnerTick(spinner::ellipsis::Tick),
     MonkeySpinnerTick(spinner::monkey::Tick),
+    MoonSpinnerTick(spinner::moon::Tick),
     SnakeSpinnerTick(spinner::snake::Tick),
     WorldSpinnerTick(spinner::world::Tick),
 }
@@ -116,6 +120,7 @@ generate_sender_from_sender!(World, BarSpinnerTick, spinner::bar::Tick);
 generate_sender_from_sender!(World, BounceSpinnerTick, spinner::bounce::Tick);
 generate_sender_from_sender!(World, EllipsisSpinnerTick, spinner::ellipsis::Tick);
 generate_sender_from_sender!(World, MonkeySpinnerTick, spinner::monkey::Tick);
+generate_sender_from_sender!(World, MoonSpinnerTick, spinner::moon::Tick);
 generate_sender_from_sender!(World, SnakeSpinnerTick, spinner::snake::Tick);
 generate_sender_from_sender!(World, WorldSpinnerTick, spinner::world::Tick);
 generate_full_sender!(World);
