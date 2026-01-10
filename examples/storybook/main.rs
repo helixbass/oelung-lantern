@@ -7,7 +7,7 @@ use tokio_stream::StreamExt;
 
 use oelung_lantern::{
     generate_full_sender, generate_sender, generate_sender_from_sender, mpsc::Sender, spinner,
-    ReceiveEvent, Storybook, StorybookBuilder,
+    storybook, ReceiveEvent, Storybook, StorybookBuilder,
 };
 
 mod snake;
@@ -30,6 +30,7 @@ async fn main() -> Result<(), anyhow::Error> {
             Box::new(WorldSpinner::new()),
         ])
         .sender(Box::new(WorldSender::from(sender.clone())))
+        .storybook_event_from(Box::new(StorybookEventFrom::default()))
         .build()
         .unwrap();
     storybook.select_component(0);
@@ -92,3 +93,21 @@ generate_sender!(World, Crossterm, Event);
 generate_sender_from_sender!(World, SnakeSpinnerTick, spinner::snake::Tick);
 generate_sender_from_sender!(World, WorldSpinnerTick, spinner::world::Tick);
 generate_full_sender!(World);
+
+#[derive(Default)]
+struct StorybookEventFrom {
+    pub aggregator: storybook::Aggregator,
+}
+
+impl storybook::StorybookEventFrom<World> for StorybookEventFrom {
+    fn get<'a>(
+        &mut self,
+        event: &TWorld,
+        queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
+    ) -> Option<storybook::Event> {
+        match event {
+            World::Crossterm(event) => self.aggregator.receive(event, queue_effect),
+            _ => None,
+        }
+    }
+}

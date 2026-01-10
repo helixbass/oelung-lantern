@@ -23,6 +23,7 @@ pub struct Storybook<TWorld> {
     pub current_inputs: Option<Vec<InputInstance>>,
     pub sender: Box<dyn Sender<TWorld>>,
     pub storybook_event_from: Box<dyn StorybookEventFrom<TWorld>>,
+    pub mode: Mode,
 }
 
 pub struct StorybookBuilder<TWorld> {
@@ -73,6 +74,7 @@ impl<TWorld> StorybookBuilder<TWorld> {
             storybook_event_from: self.storybook_event_from.ok_or_else(|| {
                 Error::StorybookBuilder("expected storybook_event_from".to_owned())
             })?,
+            mode: _d(),
         })
     }
 }
@@ -103,6 +105,25 @@ impl<TWorld> Storybook<TWorld> {
             .map(|input| (input.input.name.clone(), input.value.clone()))
             .collect()
     }
+
+    pub fn receive_storybook_event(&mut self, event: Event) {
+        match (&self.mode, event) {
+            (Mode::Normal, Event::OpenComponentChooser) => {
+                self.mode = Mode::ComponentChooser(_d());
+            }
+            (_, Event::GoIntoNormalMode) => {
+                self.mode = Mode::Normal;
+            }
+            (Mode::ComponentChooser(component_chooser), Event::ChooseComponent) => {
+                unimplemented!()
+            }
+            (Mode::ComponentChooser(_), Event::ComponentChooserKey(key_event)) => {
+                unimplemented!()
+                // self.mode.as_component_chooser_mut()
+            }
+            _ => panic!("unexpected event"),
+        }
+    }
 }
 
 impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
@@ -126,9 +147,12 @@ impl<TWorld> ReceiveEvent<TWorld> for Storybook<TWorld> {
     fn receive<TQueueEffect: FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>)>(
         &mut self,
         event: &TWorld,
-        queue_effect: TQueueEffect,
+        mut queue_effect: TQueueEffect,
     ) -> Result<(), anyhow::Error> {
-        if let Some(storybook_event) = self.storybook_event_from.get(event) {
+        if let Some(storybook_event) = self
+            .storybook_event_from
+            .get(event, Box::new(&mut queue_effect))
+        {
             self.receive_storybook_event(storybook_event);
         } else if let Some(currently_selected_component) =
             self.currently_selected_component.as_mut()
@@ -208,12 +232,30 @@ pub trait ComponentInstance<TWorld> {
 }
 
 pub trait StorybookEventFrom<TWorld> {
-    fn get(&self, event: &TWorld) -> Option<&Event>;
+    fn get<'a>(
+        &mut self,
+        event: &TWorld,
+        queue_effect: Box<dyn FnMut(Pin<Box<dyn Future<Output = ()> + Send + 'static>>) + 'a>,
+    ) -> Option<Event>;
 }
 
+#[derive(Default)]
+pub struct ComponentChooser {}
+
+#[derive(Default)]
 pub enum Mode {
+    #[default]
     Normal,
     ComponentChooser(ComponentChooser),
+}
+
+impl Mode {
+    pub fn as_component_chooser_mut(&mut self) -> &mut ComponentChooser {
+        match self {
+            Self::ComponentChooser(component_chooser) => component_chooser,
+            _ => panic!("expected component chooser"),
+        }
+    }
 }
 
 pub enum Event {
