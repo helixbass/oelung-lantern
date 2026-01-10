@@ -155,6 +155,7 @@ impl<TWorld> Storybook<TWorld> {
                 // TODO: sanity-check-assert here that the input value matches the
                 // input.input_type? (eg Duration <-> Duration, Color <-> Color)?
                 self.current_inputs.as_mut().unwrap()[edit_input.input_index].value = input_value;
+                self.mode = Mode::Normal;
                 self.storybook_event_from.receive_update_aggregator_state(
                     UpdateAggregatorState::Initial,
                     queue_effect,
@@ -555,9 +556,9 @@ impl ReceiveEvent<event::Event, Option<Event>> for Aggregator {
             (State::ComponentChooser, event) if is_simple_key_press(event, KeyCode::Enter) => {
                 Some(Event::ChooseComponent)
             }
-            (State::Initial, event) if is_ctrl_char_press(event, 'i') => {
+            (State::Initial, event) if is_ctrl_char_press(event, 'n') => {
                 self.state = State::SelectInput;
-                Some(Event::OpenComponentChooser)
+                Some(Event::GoIntoSelectInput)
             }
             (State::SelectInput, event) if is_simple_digit_press(event).is_some() => {
                 self.state = State::EditInput;
