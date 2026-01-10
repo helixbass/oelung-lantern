@@ -279,6 +279,7 @@ impl Mode {
     }
 }
 
+#[derive(Debug)]
 pub enum Event {
     OpenComponentChooser,
     GoIntoNormalMode,
@@ -312,6 +313,7 @@ impl ReceiveEvent<event::Event, Option<Event>> for Aggregator {
     ) -> Result<Option<Event>, anyhow::Error> {
         Ok(match (&self.state, event) {
             (State::Initial, event) if is_ctrl_char_press(event, 'c') => {
+                self.state = State::ComponentChooser;
                 Some(Event::OpenComponentChooser)
             }
             (_, event) if is_simple_key_press(event, KeyCode::Esc) => {
