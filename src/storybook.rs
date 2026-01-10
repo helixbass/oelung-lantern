@@ -171,7 +171,7 @@ impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
     #[instrument(level = "trace", skip(self, _grid))]
     fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
         Ok(match &self.mode {
-            Mode::Normal => soft! {
+            Mode::Normal | Mode::SelectInput => soft! {
                 %FlexRow children => [
                   %ComponentPanel::new(
                       self.currently_selected_component.as_ref().unwrap().get_component()
@@ -189,6 +189,9 @@ impl<'a, TWorld> ComponentInterface for &'a Storybook<TWorld> {
                       &self.components,
                   )
                 ]
+            },
+            Mode::EditInput(edit_input) => soft! {
+                %edit_input
             },
         })
     }
@@ -350,6 +353,7 @@ impl<TWorld> ComponentChooser<TWorld> {
 pub struct EditInput {
     pub input_index: usize,
     pub state: EditInputState,
+    pub input: Rc<Input>,
 }
 
 impl EditInput {
@@ -362,14 +366,27 @@ impl EditInput {
                     EditInputState::Duration(EditInputDuration::new(input.value.as_duration()))
                 }
                 InputType::Color => {
-                    EditInputState::Color(EditInputColor::new(input.value.as_color()))
+                    EditInputState::Color(EditInputColor::new(input.value.as_color().clone()))
                 }
             },
+            input: input.input.clone(),
         }
     }
 
     pub fn receive_key_event(&mut self, key_event: &KeyEvent) -> Option<Event> {
         self.state.receive_key_event(key_event)
+    }
+}
+
+impl<'a> ComponentInterface for &'a EditInput {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            %FlexColumn children => [
+              %Text &self.input.name
+              %&self.state
+            ]
+        })
     }
 }
 
@@ -384,6 +401,16 @@ impl EditInputState {
             Self::Duration(duration) => duration.receive_key_event(key_event),
             Self::Color(color) => color.receive_key_event(key_event),
         }
+    }
+}
+
+impl<'a> ComponentInterface for &'a EditInputState {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(match self {
+            EditInputState::Duration(duration) => soft! { %duration },
+            EditInputState::Color(color) => soft! { %color },
+        })
     }
 }
 
@@ -412,6 +439,38 @@ impl EditInputDuration {
         } else {
             panic!("unexpected key event")
         }
+    }
+}
+
+impl<'a> ComponentInterface for &'a EditInputDuration {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            %Text &self.millis
+        })
+    }
+}
+
+pub struct EditInputColor {
+    pub color: Color,
+}
+
+impl EditInputColor {
+    pub fn new(color: Color) -> Self {
+        Self { color }
+    }
+
+    pub fn receive_key_event(&mut self, key_event: &KeyEvent) -> Option<Event> {
+        unimplemented!()
+    }
+}
+
+impl<'a> ComponentInterface for &'a EditInputColor {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            %Text "COLOR"
+        })
     }
 }
 
