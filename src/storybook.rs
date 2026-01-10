@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::marker::PhantomData;
 use std::pin::Pin;
 use std::rc::Rc;
 use std::time::Duration;
@@ -13,8 +14,8 @@ use squalid::_d;
 use tracing::instrument;
 
 use crate::{
-    is_any_simple_char_press, is_ctrl_char_press, is_simple_key_press, mpsc::Sender, Error,
-    ReceiveEvent,
+    is_any_simple_char_press, is_any_simple_char_press_key_event, is_ctrl_char_press,
+    is_simple_key_press, is_simple_key_press_key_event, mpsc::Sender, Error, ReceiveEvent,
 };
 
 pub struct Storybook<TWorld> {
@@ -23,7 +24,7 @@ pub struct Storybook<TWorld> {
     pub current_inputs: Option<Vec<InputInstance>>,
     pub sender: Box<dyn Sender<TWorld>>,
     pub storybook_event_from: Box<dyn StorybookEventFrom<TWorld>>,
-    pub mode: Mode,
+    pub mode: Mode<TWorld>,
 }
 
 pub struct StorybookBuilder<TWorld> {
@@ -130,8 +131,9 @@ impl<TWorld> Storybook<TWorld> {
                 )?;
             }
             (Mode::ComponentChooser(_), Event::ComponentChooserKey(key_event)) => {
-                unimplemented!()
-                // self.mode.as_component_chooser_mut()
+                self.mode
+                    .as_component_chooser_mut()
+                    .receive_key_event(&key_event, &self.components);
             }
             _ => panic!("unexpected event"),
         }
@@ -260,18 +262,53 @@ pub trait StorybookEventFrom<TWorld> {
     }
 }
 
-#[derive(Default)]
-pub struct ComponentChooser {}
-
-#[derive(Default)]
-pub enum Mode {
-    #[default]
-    Normal,
-    ComponentChooser(ComponentChooser),
+pub struct ComponentChooser<TWorld> {
+    pub search: String,
+    pub indices: Vec<usize>,
+    phantom_data: PhantomData<TWorld>,
 }
 
-impl Mode {
-    pub fn as_component_chooser_mut(&mut self) -> &mut ComponentChooser {
+impl<TWorld> Default for ComponentChooser<TWorld> {
+    fn default() -> Self {
+        Self {
+            search: _d(),
+            indices: _d(),
+            phantom_data: PhantomData,
+        }
+    }
+}
+
+impl<TWorld> ComponentChooser<TWorld> {
+    pub fn receive_key_event(
+        &mut self,
+        key_event: &KeyEvent,
+        components: &[Box<dyn Component<TWorld>>],
+    ) {
+        if let Some(ch) = is_any_simple_char_press_key_event(key_event) {
+            self.search.push(ch);
+            self.recompute_indices(components);
+        } else if is_simple_key_press_key_event(key_event, KeyCode::Backspace) {
+            let _ = self.search.pop();
+            self.recompute_indices(components);
+        } else {
+            panic!("unexpected key event")
+        }
+    }
+
+    fn recompute_indices(&mut self, components: &[Box<dyn Component<TWorld>>]) {
+        unimplemented!()
+    }
+}
+
+#[derive(Default)]
+pub enum Mode<TWorld> {
+    #[default]
+    Normal,
+    ComponentChooser(ComponentChooser<TWorld>),
+}
+
+impl<TWorld> Mode<TWorld> {
+    pub fn as_component_chooser_mut(&mut self) -> &mut ComponentChooser<TWorld> {
         match self {
             Self::ComponentChooser(component_chooser) => component_chooser,
             _ => panic!("expected component chooser"),
