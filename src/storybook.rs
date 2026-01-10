@@ -462,6 +462,25 @@ impl<'a, TWorld> ComponentInterface for ComponentChooserView<'a, TWorld> {
     }
 }
 
+pub struct ComponentChooserInput<'a> {
+    pub search: &'a str,
+}
+
+impl<'a> ComponentChooserInput<'a> {
+    pub fn new(search: &'a str) -> Self {
+        Self { search }
+    }
+}
+
+impl<'a> ComponentInterface for ComponentChooserInput<'a> {
+    #[instrument(level = "trace", skip(self, _grid))]
+    fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
+        Ok(soft! {
+            %Text self.search
+        })
+    }
+}
+
 pub struct ComponentChooserResults<'a, TWorld> {
     pub component_chooser: &'a ComponentChooser<TWorld>,
     pub components: &'a [Box<dyn Component<TWorld>>],
@@ -482,20 +501,25 @@ impl<'a, TWorld> ComponentChooserResults<'a, TWorld> {
 impl<'a, TWorld> ComponentInterface for ComponentChooserResults<'a, TWorld> {
     #[instrument(level = "trace", skip(self, _grid))]
     fn render(&self, _grid: Grid) -> Result<oelung::Component<'_>, anyhow::Error> {
-        Ok(soft! {
-            %FlexColumn
-              children =>
-                self
-                    .component_chooser
-                    .indices
-                    .iter()
-                    .map(|index| &self.components[*index])
-                    .map(|component| -> Result<_, anyhow::Error> {
-                        Ok(soft! {
-                            %Text component.name()
+        Ok(match self.component_chooser.indices.is_empty() {
+            false => soft! {
+                %FlexColumn
+                  children =>
+                    self
+                        .component_chooser
+                        .indices
+                        .iter()
+                        .map(|index| &self.components[*index])
+                        .map(|component| -> Result<_, anyhow::Error> {
+                            Ok(soft! {
+                                %Text component.name()
+                            })
                         })
-                    })
-                    .collect::<Result<_, _>>()?
+                        .collect::<Result<_, _>>()?
+            },
+            true => soft! {
+                %Text "no matches"
+            },
         })
     }
 }
